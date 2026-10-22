@@ -1,0 +1,33 @@
+# Example for one TCL model. Check your own TV's package list before use.
+# Disables the stock launchers: install Hermes TV and set it as home first.
+com.tcl.exhibit
+com.tcl.esticker
+com.tcl.hotelmenu
+com.tcl.messagebox
+com.tcl.logkit
+com.google.android.feedback
+com.tcl.smartalexa
+android.autoinstalls.config.google.gtvpai
+com.google.android.play.games
+com.google.android.apps.tv.dreamx
+com.tcl.waterfall.overseas
+com.tcl.channelplus
+com.tcl.repairguide
+com.tcl.ocean.instructions
+com.google.android.marvin.talkback
+com.android.printspooler
+com.google.android.tungsten.setupwraith
+com.tcl.initsetup
+com.google.android.partnersetup
+com.google.android.onetimeinitializer
+com.tcl.gamebar
+com.amazon.amazonvideo.livingroom
+com.apple.atve.androidtv.appletv
+com.spotify.tv.android
+com.magikbee.kiddztube_Lite
+com.tcl.browser
+com.FDGEntertainment.redball4.gp
+com.vectorunit.purple.googleplay
+com.google.android.videos
+com.google.android.apps.tv.launcherx
+me.efesser.flauncher

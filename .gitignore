@@ -1,0 +1,15 @@
+.superpowers/
+bridge/.venv/
+**/build/
+.gradle/
+local.properties
+*.apk
+hermes-plugin/.venv/
+__pycache__/
+*.egg-info/
+bridge/state/
+tv/camera.properties
+tv/bridge.properties
+restore-my-tv.sh
+step-*.png
+keys-*.txt

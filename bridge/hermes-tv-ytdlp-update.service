@@ -1,0 +1,9 @@
+[Unit]
+Description=Hermes TV bridge: upgrade yt-dlp in the bridge venv (the bridge runs it per call, so no restart)
+After=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10min
+ExecStart=%h/hermes-tv/bridge/.venv/bin/pip install --quiet --upgrade yt-dlp
+Nice=10

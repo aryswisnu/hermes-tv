@@ -1,0 +1,71 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "backdrop_path": "/hollowLineBackdrop01.jpg",
+      "first_air_date": "2024-02-10",
+      "genre_ids": [9648, 18],
+      "id": 800001,
+      "name": "The Hollow Line",
+      "origin_country": ["GB"],
+      "original_language": "en",
+      "original_name": "The Hollow Line",
+      "overview": "A railway detective follows a train that runs one stop too far.",
+      "popularity": 702.6,
+      "poster_path": "/hollowLinePoster01.jpg",
+      "vote_average": 8.2,
+      "vote_count": 640
+    },
+    {
+      "adult": false,
+      "backdrop_path": "/kitchenTableBackdrop02.jpg",
+      "first_air_date": "2022-06-01",
+      "genre_ids": [35, 10751],
+      "id": 800002,
+      "name": "Kitchen Table Stories",
+      "origin_country": ["US"],
+      "original_language": "en",
+      "original_name": "Kitchen Table Stories",
+      "overview": "Three generations of one family argue over dinner every week.",
+      "popularity": 455.0,
+      "poster_path": "/kitchenTablePoster02.jpg",
+      "vote_average": 7.9,
+      "vote_count": 380
+    },
+    {
+      "adult": false,
+      "backdrop_path": "/northboundBackdrop03.jpg",
+      "first_air_date": "2023-11-11",
+      "genre_ids": [10759, 10765],
+      "id": 800003,
+      "name": "Northbound",
+      "origin_country": ["CA"],
+      "original_language": "en",
+      "original_name": "Northbound",
+      "overview": "A crew flies a cargo ship to the edge of the known map.",
+      "popularity": 390.2,
+      "poster_path": "/northboundPoster03.jpg",
+      "vote_average": 8.0,
+      "vote_count": 910
+    },
+    {
+      "adult": false,
+      "backdrop_path": "/lowtideBackdrop04.jpg",
+      "first_air_date": null,
+      "genre_ids": [18],
+      "id": 800004,
+      "name": "Lowtide",
+      "origin_country": ["US"],
+      "original_language": "en",
+      "original_name": "Lowtide",
+      "overview": "A series without a first air date.",
+      "popularity": 120.4,
+      "poster_path": "/lowtidePoster04.jpg",
+      "vote_average": 7.6,
+      "vote_count": 60
+    }
+  ],
+  "total_pages": 1,
+  "total_results": 4
+}

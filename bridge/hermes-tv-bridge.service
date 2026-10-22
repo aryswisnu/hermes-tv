@@ -1,0 +1,15 @@
+[Unit]
+Description=Hermes TV bridge: home-screen picks, schedule, weather and scenery for the TV (127.0.0.1:8650, tailnet via tailscale serve :8444)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/hermes-tv/bridge
+ExecStart=%h/hermes-tv/bridge/.venv/bin/uvicorn hermestv.app:app --host 127.0.0.1 --port 8650
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+Nice=10
+MemoryMax=1500M
+
+[Install]
+WantedBy=default.target

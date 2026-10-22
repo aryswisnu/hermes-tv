@@ -1,0 +1,245 @@
+{
+ "id": "unsolved mysteries",
+ "title": "unsolved mysteries",
+ "_type": "playlist",
+ "entries": [
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000001",
+   "url": "https://www.youtube.com/watch?v=Myst0000001",
+   "title": "The Lighthouse Keeper Who Vanished Without a Trace",
+   "description": "A keeper leaves his post one stormy night and is never seen again.",
+   "duration": 1796,
+   "channel_id": "UCexampleColdCaseHour0001",
+   "channel": "Cold Case Hour",
+   "channel_url": "https://www.youtube.com/channel/UCexampleColdCaseHour0001",
+   "uploader": "Cold Case Hour",
+   "uploader_id": "@example-cold-case-hour",
+   "uploader_url": "https://www.youtube.com/@example-cold-case-hour",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000001/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 4936458,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000002",
+   "url": "https://www.youtube.com/watch?v=Myst0000002",
+   "title": "The Dormitory Case That Shocked a Small Town",
+   "description": "A quiet campus, a locked room and a question nobody could answer.",
+   "duration": 2465,
+   "channel_id": "UCexampleNightFiles000002",
+   "channel": "Night Files",
+   "channel_url": "https://www.youtube.com/channel/UCexampleNightFiles000002",
+   "uploader": "Night Files",
+   "uploader_id": "@example-night-files",
+   "uploader_url": "https://www.youtube.com/@example-night-files",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000002/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 896750,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000003",
+   "url": "https://www.youtube.com/watch?v=Myst0000003",
+   "title": "Unsolved: The Missing Painter of Harbor Street",
+   "description": "Her studio was found open, the paint still wet.",
+   "duration": 1546,
+   "channel_id": "UCexampleColdCaseHour0001",
+   "channel": "Cold Case Hour",
+   "channel_url": "https://www.youtube.com/channel/UCexampleColdCaseHour0001",
+   "uploader": "Cold Case Hour",
+   "uploader_id": "@example-cold-case-hour",
+   "uploader_url": "https://www.youtube.com/@example-cold-case-hour",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000003/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 3900890,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000004",
+   "url": "https://www.youtube.com/watch?v=Myst0000004",
+   "title": "Only an Expert Detective Could Crack This Case",
+   "description": "In 1988 a night clerk noticed one small detail.",
+   "duration": 2337,
+   "channel_id": "UCexampleNightFiles000002",
+   "channel": "Night Files",
+   "channel_url": "https://www.youtube.com/channel/UCexampleNightFiles000002",
+   "uploader": "Night Files",
+   "uploader_id": "@example-night-files",
+   "uploader_url": "https://www.youtube.com/@example-night-files",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000004/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 1051152,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000005",
+   "url": "https://www.youtube.com/watch?v=Myst0000005",
+   "title": "Seven Years Cold: How One Photo Solved the Case",
+   "description": "An old holiday photo gave investigators a new lead.",
+   "duration": 2336,
+   "channel_id": "UCexampleCaseRoom00000003",
+   "channel": "Case Room",
+   "channel_url": "https://www.youtube.com/channel/UCexampleCaseRoom00000003",
+   "uploader": "Case Room",
+   "uploader_id": "@example-case-room",
+   "uploader_url": "https://www.youtube.com/@example-case-room",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000005/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 114317,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000006",
+   "url": "https://www.youtube.com/watch?v=Myst0000006",
+   "title": "Mystery Stew: Slow Cooker Recipe for Rainy Days",
+   "description": "A warming stew with a secret ingredient.",
+   "duration": 1264,
+   "channel_id": "UCexampleKitchenCorner004",
+   "channel": "Kitchen Corner",
+   "channel_url": "https://www.youtube.com/channel/UCexampleKitchenCorner004",
+   "uploader": "Kitchen Corner",
+   "uploader_id": "@example-kitchen-corner",
+   "uploader_url": "https://www.youtube.com/@example-kitchen-corner",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000006/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 2585420,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000007",
+   "url": "https://www.youtube.com/watch?v=Myst0000007",
+   "title": "The Mountain Pass Mystery, Fully Explained",
+   "description": "Every theory about the mountain pass, from the start.",
+   "duration": 4200,
+   "channel_id": "UCexampleStoryVault000005",
+   "channel": "Story Vault",
+   "channel_url": "https://www.youtube.com/channel/UCexampleStoryVault000005",
+   "uploader": "Story Vault",
+   "uploader_id": "@example-story-vault",
+   "uploader_url": "https://www.youtube.com/@example-story-vault",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000007/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 3439202,
+   "live_status": null,
+   "channel_is_verified": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Myst0000008",
+   "url": "https://www.youtube.com/watch?v=Myst0000008",
+   "title": "Twin Sisters and the Highway Mystery",
+   "description": "A short look at a strange day on the highway.",
+   "duration": 240,
+   "channel_id": "UCexampleStoryVault000005",
+   "channel": "Story Vault",
+   "channel_url": "https://www.youtube.com/channel/UCexampleStoryVault000005",
+   "uploader": "Story Vault",
+   "uploader_id": "@example-story-vault",
+   "uploader_url": "https://www.youtube.com/@example-story-vault",
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/Myst0000008/hq720.jpg",
+     "height": 202,
+     "width": 360
+    }
+   ],
+   "timestamp": null,
+   "release_timestamp": null,
+   "availability": null,
+   "view_count": 1164539,
+   "live_status": null,
+   "channel_is_verified": null
+  }
+ ],
+ "webpage_url": "ytsearch8:unsolved mysteries",
+ "original_url": "ytsearch8:unsolved mysteries",
+ "webpage_url_basename": "unsolved mysteries",
+ "webpage_url_domain": null,
+ "extractor": "youtube:search",
+ "extractor_key": "YoutubeSearch",
+ "release_year": null,
+ "playlist_count": 8,
+ "epoch": 1792000000,
+ "_version": {
+  "version": "2026.08.19",
+  "current_git_head": null,
+  "repository": "yt-dlp/yt-dlp"
+ }
+}

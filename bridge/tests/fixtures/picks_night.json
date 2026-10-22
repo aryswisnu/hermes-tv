@@ -1,0 +1,72 @@
+{
+  "slot": "night",
+  "label": "Tonight: horror",
+  "films": [
+    {
+      "title": "The Lantern Keeper",
+      "year": 2025,
+      "runtime_min": 137,
+      "rating": 7.5,
+      "service": "netflix",
+      "url": "https://www.netflix.com/",
+      "poster": "https://image.tmdb.org/t/p/w500/lanternKeeperPoster01.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/w1280/lanternKeeperBackdrop01.jpg",
+      "genres": [
+        "action",
+        "horror",
+        "thriller"
+      ],
+      "why": "A slow-burn pier mystery with a great final act, good for two."
+    },
+    {
+      "title": "The Night Orchard",
+      "year": 2025,
+      "runtime_min": 129,
+      "rating": 7.4,
+      "service": "hbomax",
+      "url": "https://www.max.com/",
+      "poster": "https://image.tmdb.org/t/p/w500/nightOrchardPoster02.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/w1280/nightOrchardBackdrop02.jpg",
+      "genres": [
+        "horror",
+        "thriller"
+      ],
+      "why": "Children vanish at 2:17 at night; a creepy mystery with a wild ending."
+    },
+    {
+      "title": "Midnight Ferry",
+      "year": 2024,
+      "runtime_min": 133,
+      "rating": 7.1,
+      "service": "netflix",
+      "url": "https://www.netflix.com/",
+      "poster": "https://image.tmdb.org/t/p/w500/midnightFerryPoster08.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/w1280/midnightFerryBackdrop08.jpg",
+      "genres": [
+        "fantasy",
+        "horror"
+      ],
+      "why": "Classic gothic horror with gorgeous visuals and a chilling mood."
+    },
+    {
+      "title": "Paper Lighthouse",
+      "year": 2019,
+      "runtime_min": 95,
+      "rating": 7.0,
+      "service": "netflix",
+      "url": "https://www.netflix.com/",
+      "poster": "https://image.tmdb.org/t/p/w500/paperLighthousePoster07.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/w1280/paperLighthouseBackdrop07.jpg",
+      "genres": [
+        "comedy",
+        "drama",
+        "horror",
+        "thriller",
+        "scifi"
+      ],
+      "why": "A brutal vertical prison; smart, tense, and a lot to talk about after."
+    }
+  ],
+  "updated_at": "2026-10-20T19:04:12+08:00",
+  "refreshing": false
+}

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="netflix_key_desc">Opens Netflix, YouTube and HBO Max from their remote buttons, and ignores the Channel button.</string>
+</resources>

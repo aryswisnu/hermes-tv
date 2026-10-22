@@ -1,0 +1,23 @@
+Hermes TV
+Copyright (c) 2026 Hermes TV contributors
+Licensed under the MIT License (see LICENSE), except for the parts listed below.
+
+AndroidX Media3 RTSP module
+Copyright 2021 The Android Open Source Project
+Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
+
+tv/app/src/main/java/androidx/media3/exoplayer/rtsp/ is a copy of media3-exoplayer-rtsp 1.4.1
+(https://github.com/androidx/media). The copy keeps the Apache 2.0 header in every file.
+It has two changes, marked "Hermes TV patch" in the source:
+1. RtspMediaTrack.java: H.265 parameter sets sent in the H.264-style sprop-parameter-sets
+   attribute are ordered as [VPS,] SPS, PPS, so the stream can play.
+2. reader/RtpH265Reader.java: the NAL unit type of a fragmented unit comes from the first
+   fragment only, because some cameras fill later fragment headers differently.
+
+Scenery photos
+The idle-screen photos are not in this repository. tools/fetch-scenery.sh downloads them from
+Wikimedia Commons. bridge/scenery/CREDITS.md gives the author and licence of each photo.
+
+Service logos
+Service logos (Netflix, HBO Max, YouTube, YouTube Music) come from Simple Icons (CC0). They are
+trademarks of their owners and are used only to label the apps they open.

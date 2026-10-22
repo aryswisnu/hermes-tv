@@ -1,0 +1,7 @@
+name: hermes-tv-gate
+version: 2.0.0
+description: "Refuse every tool on API-server (Hermes TV) runs."
+author: Hermes TV contributors
+kind: standalone
+provides_hooks:
+  - pre_tool_call

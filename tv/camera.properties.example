@@ -1,0 +1,24 @@
+# Copy to tv/camera.properties (gitignored). Up to 4 cameras, n = 1..4; a camera without CAMERA_n_URL is skipped.
+# Main stream: full screen plays it.
+CAMERA_1_URL=rtsp://<user>:<password>@<camera-ip>:554/<main-stream-path>
+# Sub stream (optional): the grid plays it; when empty, the grid plays the main stream.
+CAMERA_1_SUB_URL=rtsp://<user>:<password>@<camera-ip>:554/<sub-stream-path>
+# Name on the camera cell (optional, default "Camera n").
+CAMERA_1_NAME=Front door
+# Set to sub when the camera's network cannot carry its main stream: full screen then plays the sub stream.
+CAMERA_1_FULL=
+
+CAMERA_2_URL=
+CAMERA_2_SUB_URL=
+CAMERA_2_NAME=
+CAMERA_2_FULL=
+
+CAMERA_3_URL=
+CAMERA_3_SUB_URL=
+CAMERA_3_NAME=
+CAMERA_3_FULL=
+
+CAMERA_4_URL=
+CAMERA_4_SUB_URL=
+CAMERA_4_NAME=
+CAMERA_4_FULL=

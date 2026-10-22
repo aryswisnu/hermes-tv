@@ -1,0 +1,15 @@
+{
+  "adult": false,
+  "backdrop_path": "/lanternKeeperBackdrop01.jpg",
+  "genres": [{"id": 27, "name": "Horror"}, {"id": 53, "name": "Thriller"}],
+  "id": 900001,
+  "original_language": "en",
+  "original_title": "The Lantern Keeper",
+  "poster_path": "/lanternKeeperPoster01.jpg",
+  "release_date": "2024-03-15",
+  "runtime": 112,
+  "status": "Released",
+  "title": "The Lantern Keeper",
+  "vote_average": 7.6,
+  "vote_count": 1840
+}

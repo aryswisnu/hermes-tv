@@ -1,0 +1,5 @@
+# Copy to tv/bridge.properties (gitignored); the build reads it and fails without BRIDGE_URL.
+# The bridge's Tailscale HTTPS address, with no path.
+BRIDGE_URL=https://<host>.<tailnet>.ts.net:8444
+# The TV key: the same value as TV_KEY in ~/.config/hermes-tv/bridge.env.
+TV_KEY=<same as bridge.env>

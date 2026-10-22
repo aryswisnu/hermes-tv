@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320x180 leanback banner: "HERMES TV" in white on the picker's dark background. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:fillColor="#0B0C10" android:pathData="M0,0h320v180h-320z" />
+    <!-- H -->
+    <path android:fillColor="#FFFFFF" android:pathData="M17,65h8v50h-8z M37,65h8v50h-8z M25,86h12v8h-12z" />
+    <!-- E -->
+    <path android:fillColor="#FFFFFF" android:pathData="M52,65h8v50h-8z M60,65h20v8h-20z M60,86h16v8h-16z M60,107h20v8h-20z" />
+    <!-- R -->
+    <path android:fillColor="#FFFFFF" android:pathData="M87,65h8v50h-8z M95,65h12v8h-12z M107,65h8v29h-8z M95,86h12v8h-12z M99,94h9l7,21h-9z" />
+    <!-- M -->
+    <path android:fillColor="#FFFFFF" android:pathData="M122,65h8v50h-8z M142,65h8v50h-8z M130,65L136,87L142,65V77L136,97L130,77z" />
+    <!-- E -->
+    <path android:fillColor="#FFFFFF" android:pathData="M157,65h8v50h-8z M165,65h20v8h-20z M165,86h16v8h-16z M165,107h20v8h-20z" />
+    <!-- S -->
+    <path android:fillColor="#FFFFFF" android:pathData="M192,65h28v8h-28z M192,73h8v13h-8z M192,86h28v8h-28z M212,94h8v13h-8z M192,107h28v8h-28z" />
+    <!-- T -->
+    <path android:fillColor="#FFFFFF" android:pathData="M240,65h28v8h-28z M250,73h8v42h-8z" />
+    <!-- V -->
+    <path android:fillColor="#FFFFFF" android:pathData="M275,65h9l5,40l5,-40h9l-10,50h-8z" />
+</vector>
