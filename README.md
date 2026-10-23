@@ -2,10 +2,6 @@
   <img src="docs/hero.jpg" alt="Hermes TV poster in the style of an old engraving: the god Hermes with his staff points at an ornate television cabinet that shows a night scene, with planets, stars and Latin captions around them" width="900">
 </p>
 
-<p align="center">
-  <img src="docs/hermes-logo.svg" alt="Hermes Agent logo" width="96">
-</p>
-
 <h1 align="center">Hermes TV</h1>
 
 <p align="center"><b>Turn your Android TV into a really smart TV.</b><br>
