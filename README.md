@@ -377,6 +377,15 @@ Ask your Hermes Agent for films in a chat app, for example Telegram: "Any folk-h
 Hermes reads what the TV opened, skips what you watched lately, and recommends titles on Netflix or HBO Max.
 When you ask, it puts its picks on the TV. A "From Hermes" row at the top of Home shows them until the next 04:00. The focused card shows Hermes's one-line reason under the meta line.
 
+<table>
+  <tr>
+    <td width="32%"><img src="docs/ask-hermes-chat.png" alt="A Telegram chat: the user asks Hermes for 3 folk horror films with forests to show on the TV tonight. Hermes reads the hermes-tv skill and watch.json, searches the web, and answers with The Ritual and Apostle on Netflix, now queued on the TV."></td>
+    <td width="68%"><img src="docs/ask-hermes-tv.png" alt="The TV home screen at 19:00, Tonight Movie Time: the From Hermes row on top with The Ritual as the focused card, its meta line and Hermes's reason, and Apostle next to it; the Films row below."></td>
+  </tr>
+</table>
+
+<sub>Left: a real chat, with the sender name and one command line blurred. Right: the home screen drawn from the app's layout with live bridge data. Film images © their owners.</sub>
+
 The bridge and Hermes share one folder in the Hermes container, `/opt/data/hermes-tv/`:
 
 | File | Written by | Read by | What it holds |
