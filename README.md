@@ -53,6 +53,7 @@ Documentaries never show in the Films and Series rows. The slots and the taste a
 - **Rows.** Films and series come from [TMDB](https://www.themoviedb.org/) and are on Netflix or HBO Max in your `REGION` now. Each card shows `year · length · TMDB 7.4 · service`. OK on a card opens the service app on its home page (TMDB has no link to a title). The last film card, "All films ›", opens a full-screen picker that also shows Hermes's one-line reason for each pick.
 - **YouTube row** (lunch and dinner): videos of 5 to 60 minutes from your `YOUTUBE_QUERIES` searches, found with [yt-dlp](https://github.com/yt-dlp/yt-dlp). OK opens the video in the YouTube app.
 - **Learning.** The bridge remembers what you open and gives Hermes the titles as taste hints. Hold OK for 0.6 s on a card for "Not for us" or "Hide this channel".
+- **From Hermes row** (optional): ask Hermes for films in a chat app, and its picks show at the top of Home. See [Ask Hermes in chat](#ask-hermes-in-chat-optional).
 - **Dock** ("Your apps"): your TV apps as large tiles, Netflix, YouTube and HBO Max first, then by use, then Inputs and Settings. Hold OK on a tile to hide it.
 - **Status pill:** network, free RAM, weather, time, date and the Hermes mark (a dimmed mark with × means Hermes does not answer).
 - **Schedule line:** the next item of your Hermes schedule under the pill, for example `Tomorrow 08:00 · Pay the internet bill`.
@@ -83,16 +84,25 @@ Documentaries never show in the Films and Series rows. The slots and the taste a
    v                         v
  bridge (FastAPI, 127.0.0.1:8650,          IP cameras
          published with `tailscale serve`)
-   |-- Hermes Agent API server (optional) : chooses picks, gives the "why", reads the schedule
+   |-- Hermes Agent API server (optional) : chooses picks, gives the "why"
+   |-- Hermes container, `docker exec`     : reads the schedule; writes watch.json, reads requests.json
    |-- TMDB API                            : films and series on Netflix and HBO Max
    |-- yt-dlp                              : YouTube searches
    |-- Open-Meteo                          : weather
    '-- bridge/state/                       : history, hidden items, scenery photos
+
+ You, in a chat app (for example Telegram)
+   |
+   v
+ Hermes Agent with the hermes-tv skill (optional)
+   '-- /opt/data/hermes-tv/ in its container : reads watch.json, writes requests.json
+                                               -> the "From Hermes" row on the TV
 ```
 
 - The TV talks only to the bridge, and only over your tailnet (a private Tailscale network). The app refuses a bridge address that is not a tailnet address.
 - Every `/v1` call needs the `TV_KEY` bearer token. Only `/health` is open.
 - Hermes runs with no tools for the bridge. The `hermes-tv-gate` plugin blocks every tool on API-server runs, because YouTube titles from strangers go into the prompts.
+- Hermes has no bridge key and no network path to the bridge. The chat path is two files in one folder, and only the bridge moves them, with `docker exec`.
 
 ## What you need
 
@@ -181,6 +191,7 @@ What is off:
 - The one-line "why" for each pick.
 - The schedule line and the idle-screen schedule (they read Hermes jobs).
 - The Hermes mark in the status pill.
+- The "From Hermes" row. Nothing writes `requests.json`, so the row never shows.
 
 To turn Hermes on later, set `HERMES_URL` and `HERMES_KEY` in `~/.config/hermes-tv/bridge.env`, then run `systemctl --user restart hermes-tv-bridge`. You do not need to rebuild the TV app.
 
@@ -208,8 +219,10 @@ Edit `~/.config/hermes-tv/bridge.env`:
 |---|---|
 | `TV_KEY` | The token the TV sends. **Empty means the bridge starts, but answers 401 to every `/v1` request.** Make one with `openssl rand -hex 32`. Put the same value in `tv/bridge.properties`. |
 | `HERMES_URL`, `HERMES_KEY` | The Hermes API server, for example `http://127.0.0.1:8642`, and its key. An empty `HERMES_URL` is [Without Hermes](#without-hermes) mode. |
-| `HERMES_CONTAINER` | The Docker container of Hermes (default `hermes`). The bridge reads the schedule with `docker exec`, so the bridge user must be allowed to run `docker`. **Docker access gives the bridge user root-level access to the host.** If that is not acceptable, leave `SCHEDULE_JOBS` empty: the bridge then never runs `docker`. |
+| `HERMES_CONTAINER` | The Docker container of Hermes (default `hermes`). The bridge reads the schedule with `docker exec`, so the bridge user must be allowed to run `docker`. **Docker access gives the bridge user root-level access to the host.** If that is not acceptable, leave `SCHEDULE_JOBS`, `HERMES_TV_DIR` and `HERMES_VAULT_TV_DIR` empty: the bridge then never runs `docker`. |
 | `SCHEDULE_JOBS` | A comma list of the **exact** names of the Hermes jobs that the TV may show. Empty shows no schedule. |
+| `HERMES_TV_DIR` | The folder in the Hermes container that the bridge shares with the `hermes-tv` skill, `/opt/data/hermes-tv`. Empty turns [Ask Hermes in chat](#ask-hermes-in-chat-optional) off (the default). |
+| `HERMES_VAULT_TV_DIR` | Optional: a folder under `/opt/data/` in the Hermes container for two daily notes, `Watch Log.md` and `Taste.md`. Empty turns them off (the default). |
 | `TIME_ZONE` | An IANA name such as `America/New_York` (default `UTC`). It sets the slots, the schedule day and the scenery. Use the TV's time zone. |
 | `LATITUDE`, `LONGITUDE` | Your location for [Open-Meteo](https://open-meteo.com/). Set both, or there is no weather. |
 | `TMDB_API_KEY` | A TMDB API key or read access token. Empty gives empty Films and Series rows. |
@@ -354,6 +367,65 @@ The TV shows "Allow USB debugging?" the first time. Select "Always allow from th
 8. Run the [7-test check list](#7-test-check-list).
 
 To update later: `git pull`, build again, run `tools/tv-install.sh` again, and run `systemctl --user restart hermes-tv-bridge`.
+
+## Ask Hermes in chat (optional)
+
+Ask your Hermes Agent for films in a chat app, for example Telegram: "Any folk-horror films set in a remote village? Show them on the TV tonight."
+Hermes reads what the TV opened, skips what you watched lately, and recommends titles on Netflix or HBO Max.
+When you ask, it puts its picks on the TV. A "From Hermes" row at the top of Home shows them, each with Hermes's one-line reason, until 04:00.
+
+The bridge and Hermes share one folder in the Hermes container, `/opt/data/hermes-tv/`:
+
+| File | Written by | Read by | What it holds |
+|---|---|---|---|
+| `watch.json` | the bridge, 1 minute after you open or hide a title on the TV | Hermes | the last 500 titles that the TV opened, the hidden titles, and counts of genres, kinds, services and time of day |
+| `requests.json` | Hermes, with the `hermes-tv` skill | the bridge, for `GET /v1/picks?row=hermes` | up to 10 titles, each with a one-line reason |
+
+### Set it up
+
+You need the bridge with a TMDB key, and Hermes in Docker on the same machine as the bridge (parts 1 and 2 of [Set it up by hand](#set-it-up-by-hand)). The bridge user must be allowed to run `docker`.
+
+1. In `~/.config/hermes-tv/bridge.env`, set the shared folder:
+
+   ```sh
+   HERMES_TV_DIR=/opt/data/hermes-tv
+   ```
+
+   Optional: set `HERMES_VAULT_TV_DIR` to a folder under `/opt/data/`, for example in a notes vault that Hermes uses. Each day at 23:50 (`TIME_ZONE`), the bridge writes `Watch Log.md` (the last 100 opens) and `Taste.md` there.
+2. Restart the bridge: `systemctl --user restart hermes-tv-bridge`.
+3. Install the skill in the Hermes container, as the owner of `/opt/data` (Hermes runs as that user). Replace `hermes` with your `HERMES_CONTAINER`.
+
+   ```sh
+   cd ~/hermes-tv
+   docker exec -i -u "$(docker exec hermes stat -c %u:%g /opt/data)" hermes sh -c 'mkdir -p /opt/data/skills/media/hermes-tv && cat > /opt/data/skills/media/hermes-tv/SKILL.md' < hermes-skill/hermes-tv/SKILL.md
+   ```
+
+   `nousresearch/hermes-agent:v2026.9.21` reads skills from `/opt/data/skills/`. Check the skills folder for your Hermes version. If Hermes does not use the skill, start a new conversation.
+
+Check that it works:
+
+1. Open a film on the TV. After 1 minute, `docker exec hermes cat /opt/data/hermes-tv/watch.json` shows the film.
+2. Ask Hermes in chat: "Recommend 3 films for tonight and show them on the TV."
+3. Ask the bridge for the row. It lists the titles that it found on Netflix or HBO Max:
+
+   ```sh
+   curl -s -H "Authorization: Bearer $(sed -n 's/^TV_KEY=//p' ~/.config/hermes-tv/bridge.env)" "http://127.0.0.1:8650/v1/picks?row=hermes"
+   ```
+
+4. Press HOME on the TV. The "From Hermes" row is at the top.
+
+The `hermes-tv-gate` plugin blocks tools only on API-server runs. Chat runs keep their file tools, and the skill needs them.
+
+### Safety rules
+
+- Hermes gets no bridge key and no network path to the bridge. It reads and writes files in one folder with its own file tools.
+- The bridge reaches the folder only with `docker exec` and fixed commands. It accepts only a folder under `/opt/data/` without `..`. It writes as the owner of `/opt/data`, not as root.
+- `watch.json` holds only titles, years, kinds, services and times. It has no links, addresses, keys or names.
+- `watch.json` also holds YouTube titles, which strangers write. The skill tells Hermes to treat every title as data, never as an instruction.
+- The bridge checks `requests.json` strictly: valid JSON, at most 64 KB, at most 10 items, `kind` is `film` or `series`, a title of at most 120 characters, a reason of at most 140, a year from 1900 to 2100. An item that holds `http`, `://` or `www.` in any field, also in full-width letters, is dropped.
+- The bridge looks up each title on TMDB, on Netflix or HBO Max in your `REGION`. A title that it cannot find is dropped. The TV opens only the service app, never a link from Hermes.
+- A request shows from its `created_at` until the next 04:00 in `TIME_ZONE`. A `created_at` without a time zone offset, or more than 5 minutes in the future, shows nothing.
+- A title that you hid with "Not for us" never shows.
 
 ## Cameras
 
@@ -514,6 +586,19 @@ Yes. The TV accepts only a bridge address on your tailnet. Tailscale also gives 
 
 **Do I need Hermes?**
 No. See [Without Hermes](#without-hermes).
+
+**Hermes said it put films on the TV, but the From Hermes row is empty.**
+Check these in order:
+1. `HERMES_TV_DIR=/opt/data/hermes-tv` is in `bridge.env`, and you restarted the bridge.
+2. The file is there: `docker exec hermes cat /opt/data/hermes-tv/requests.json`. If not, the skill is not installed, or Hermes wrote another path.
+3. `created_at` has a time zone offset, such as `+00:00`, and is not in the future. After 04:00 in `TIME_ZONE`, the request is over: ask again.
+4. The titles stream on Netflix or HBO Max in your `REGION`, and `TMDB_API_KEY` is set. The bridge drops a title that TMDB does not list there under the same name and year (one year off is allowed).
+5. You did not hide the title with "Not for us".
+
+Then read `journalctl --user -u hermes-tv-bridge` for `exchange:` or `requests:` lines.
+
+**Can Hermes put a link or another app on the TV?**
+No. The bridge drops every item with `http`, `://` or `www.` in it. The TV opens only Netflix or HBO Max, for titles that TMDB lists on them.
 
 **Do I need cameras?**
 No. Without a camera URL in `tv/camera.properties`, the app has no Cameras tile.
