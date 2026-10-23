@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -273,16 +274,49 @@ async def test_resolution_cached_for_60s_by_file(docker, monkeypatch):
     assert search.call_count == 5 and docker.calls == 3
 
 
-async def test_file_read_at_most_once_in_30s(docker, monkeypatch):
+async def test_file_read_at_most_once_in_5s(docker, monkeypatch):
     clock = [1000.0]
     monkeypatch.setattr(requests, "_now", lambda: clock[0])
     await requests.picks(NOW)  # the file is missing: that is cached too
-    clock[0] += 29.9
+    clock[0] += 4.9
     await requests.picks(NOW)
     assert docker.calls == 1
     clock[0] += 0.1
     await requests.picks(NOW)
     assert docker.calls == 2
+
+
+async def test_rejected_file_logs_one_fixed_reason(docker, monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger="hermestv.requests")
+    monkeypatch.setattr(requests, "READ_CACHE_S", 0)  # each call reads the file again
+    secret = "private-detail-xyz"
+    cases = [
+        (f'{{"{secret}"'.encode(), "the file is not JSON"),
+        (b"", "the file is not JSON"),
+        (json.dumps({"created_at": CREATED.isoformat(), "items": secret}).encode(), "the file has no items list"),
+        (_doc(_item(why=secret), created_at=None), "created_at is missing"),
+        (_doc(_item(why=secret), created_at="2026-10-22T19:00:00"), "created_at has no time zone offset"),
+        (_doc(_item(why=secret), created_at=secret), "created_at is not a date"),
+        (_doc(_item(why=secret), created_at="9999-12-31T04:00:00+08:00"), "created_at is not a date"),
+        (_doc(_item(why=secret), created_at=(NOW + timedelta(minutes=6)).isoformat()), "created_at is in the future"),
+        (_doc(_item(why=secret), created_at=(NOW - timedelta(hours=25)).isoformat()),
+         "the request is over: past 04:00 or 24 h old"),
+        (_doc(_item(title=secret, why="see https://evil.example")), "every item was dropped"),
+    ]
+    for raw, reason in cases:
+        caplog.clear()
+        docker.file = raw
+        for _ in range(3):
+            assert (await requests.picks(NOW)).films == []
+        # One line per file, not one per TV request, and never the file's text.
+        assert [r.getMessage() for r in caplog.records] == [f"requests: requests.json not shown: {reason}"], reason
+        assert caplog.records[0].levelname == ("INFO" if "over" in reason else "WARNING")
+        assert secret not in caplog.text and "evil" not in caplog.text
+    assert requests._check(b" " * (64 * 1024 + 1), NOW) == ([], "the file is over 64 KB")
+    # An empty list clears the row on purpose: nothing to log.
+    caplog.clear()
+    docker.file = _doc()
+    assert (await requests.picks(NOW)).films == [] and caplog.records == []
 
 
 @respx.mock

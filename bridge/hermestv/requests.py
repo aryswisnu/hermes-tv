@@ -28,19 +28,22 @@ URL_MARKS = ("http", "://", "www.")
 CLOCK_SKEW = timedelta(minutes=5)
 CUT_HOUR = 4  # local time in TIME_ZONE
 CACHE_S = 60.0
-READ_CACHE_S = 30.0
+READ_CACHE_S = 5.0  # only bounds bursts of docker exec
+OVER = "the request is over: past 04:00 or 24 h old"
 
 log = logging.getLogger(__name__)
 
 _now = time.monotonic
 _cache: tuple[str, float, list[PickFilmOut]] | None = None  # file hash, when resolved, films
 _read: tuple[float, bytes | None] | None = None  # when read, the file (None: missing or unreadable)
+_rejected: str | None = None  # hash of the last file whose rejection was logged
 
 
 def _reset() -> None:
-    global _cache, _read
+    global _cache, _read, _rejected
     _cache = None
     _read = None
+    _rejected = None
 
 
 @dataclass(frozen=True)
@@ -60,22 +63,24 @@ def _plain(text: str) -> str:
     return " ".join("".join(" " if _control(c) else c for c in text).split())
 
 
-def _shown(created_at, now: datetime) -> bool:
-    """True from created_at (a clock a little ahead is allowed) until the next 04:00 in TIME_ZONE, which is always
-    within 24 h of created_at."""
+def _not_now(created_at, now: datetime) -> str | None:
+    """None from created_at (a clock a little ahead is allowed) until the next 04:00 in TIME_ZONE, which is always
+    within 24 h of created_at; else why not."""
     if not isinstance(created_at, str):
-        return False
+        return "created_at is missing"
     try:
         at = datetime.fromisoformat(created_at)
         if at.tzinfo is None:
-            return False
+            return "created_at has no time zone offset"
         local = at.astimezone(zone())
         cut = local.replace(hour=CUT_HOUR, minute=0, second=0, microsecond=0)
         if cut <= local:
             cut += timedelta(days=1)
-        return at - CLOCK_SKEW <= now < cut
-    except (ValueError, OverflowError):  # a date at the edge of the calendar
-        return False
+        if now < at - CLOCK_SKEW:
+            return "created_at is in the future"
+        return OVER if now >= cut else None
+    except (ValueError, OverflowError):  # also a date at the edge of the calendar
+        return "created_at is not a date"
 
 
 def _item(raw) -> Item | None:
@@ -95,17 +100,35 @@ def _item(raw) -> Item | None:
     return Item(title.strip(), year, kind, _plain(why))
 
 
-def parse(raw: bytes, now: datetime) -> list[Item]:
-    """The items to show now, at most 10; [] when the file is too big, not the format, or not for now."""
+def _check(raw: bytes, now: datetime) -> tuple[list[Item], str | None]:
+    """The items to show now, and a fixed reason when the file gives none although it should."""
     if len(raw) > MAX_BYTES:
-        return []
+        return [], "the file is over 64 KB"
     try:
         doc = json.loads(raw)
     except (ValueError, RecursionError):
-        return []
-    if not isinstance(doc, dict) or not isinstance(doc.get("items"), list) or not _shown(doc.get("created_at"), now):
-        return []
-    return [item for item in map(_item, doc["items"][:MAX_ITEMS]) if item]
+        return [], "the file is not JSON"
+    if not isinstance(doc, dict) or not isinstance(doc.get("items"), list):
+        return [], "the file has no items list"
+    if reason := _not_now(doc.get("created_at"), now):
+        return [], reason
+    items = [item for item in map(_item, doc["items"][:MAX_ITEMS]) if item]
+    return items, None if items or not doc["items"] else "every item was dropped"
+
+
+def parse(raw: bytes, now: datetime) -> list[Item]:
+    """The items to show now, at most 10; [] when the file is too big, not the format, or not for now."""
+    return _check(raw, now)[0]
+
+
+def _log_rejected(raw: bytes, reason: str) -> None:
+    global _rejected
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest == _rejected:
+        return
+    _rejected = digest
+    # A fixed reason only: the file text comes from outside the bridge.
+    log.log(logging.INFO if reason == OVER else logging.WARNING, "requests: requests.json not shown: %s", reason)
 
 
 async def _resolve(raw: bytes, items: list[Item]) -> list[PickFilmOut]:
@@ -135,7 +158,7 @@ async def _resolve(raw: bytes, items: list[Item]) -> list[PickFilmOut]:
 
 
 async def _file(folder: str) -> bytes | None:
-    """requests.json, read at most once in 30 s."""
+    """requests.json, read at most once in READ_CACHE_S."""
     global _read
     if _read is None or _now() - _read[0] >= READ_CACHE_S:
         _read = (_now(), await exchange.read(folder, NAME, MAX_BYTES))
@@ -150,7 +173,11 @@ async def picks(now: datetime | None = None) -> PicksOut:
     if not folder:
         return out
     raw = await _file(folder)
-    items = parse(raw, now) if raw else []
+    if raw is None:  # the exchange has logged why
+        return out
+    items, reason = _check(raw, now)
+    if reason:
+        _log_rejected(raw, reason)
     if not items:
         return out
     # Hidden titles only: a request is explicit, so a title opened before may come back.
