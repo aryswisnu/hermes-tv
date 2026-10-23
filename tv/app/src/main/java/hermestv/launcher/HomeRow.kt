@@ -8,8 +8,9 @@ sealed interface RowItem {
     data object AllFilms : RowItem
 }
 
-/** The lines of the home screen, top to bottom: three rows of picks, then the app dock. */
+/** The lines of the home screen, top to bottom: four rows of picks, then the app dock. */
 enum class Line(val key: String, val label: String) {
+    HERMES("hermes", "From Hermes"),
     FILMS("films", "Films"),
     SERIES("series", "Series"),
     YOUTUBE("youtube", "YouTube"),
@@ -19,6 +20,7 @@ enum class Line(val key: String, val label: String) {
 /**
  * The home screen's lines. ▲ ▼ move the focus between the lines that show (films and the dock always, the
  * other rows when they have items); the screen puts the focused line at the top. Each row keeps its own focus.
+ * Until a key moves the focus after Home, it stays on the top line, so a From Hermes row that comes in is in view.
  */
 class HomeRows(now: ZonedDateTime) {
     private val rows = ROWS.associateWith { HomeRow(it) }
@@ -26,6 +28,7 @@ class HomeRows(now: ZonedDateTime) {
         private set
     var focus = Line.FILMS
         private set
+    private var moved = false
 
     val lines: List<Line> get() = Line.entries.filter { it == Line.FILMS || it == Line.DOCK || row(it).items.isNotEmpty() }
     val index: Int get() = lines.indexOf(focus)
@@ -45,13 +48,14 @@ class HomeRows(now: ZonedDateTime) {
 
     fun up(): Boolean = step(-1)
 
-    fun next(): Boolean = focus != Line.DOCK && row(focus).next()
+    fun next(): Boolean = (focus != Line.DOCK && row(focus).next()).also { if (it) moved = true }
 
-    fun prev(): Boolean = focus != Line.DOCK && row(focus).prev()
+    fun prev(): Boolean = (focus != Line.DOCK && row(focus).prev()).also { if (it) moved = true }
 
     fun home() {
         rows.values.forEach(HomeRow::home)
-        focus = Line.FILMS
+        moved = false
+        focus = lines.first()
     }
 
     fun restart() = rows.values.forEach(HomeRow::restart)
@@ -68,24 +72,29 @@ class HomeRows(now: ZonedDateTime) {
         val shown = lines
         val to = shown.getOrNull(shown.indexOf(focus) + by) ?: return false
         focus = to
+        moved = true
         return true
     }
 
-    // A hidden row hands the focus to the nearest line above it; the films row always shows.
+    // A hidden row hands the focus to the nearest line above it, From Hermes to the films row, which always shows.
     private fun keepFocus() {
         val shown = lines
-        if (focus !in shown) focus = Line.entries.take(focus.ordinal).last { it in shown }
+        focus = when {
+            !moved -> shown.first()
+            focus in shown -> focus
+            else -> Line.entries.take(focus.ordinal).lastOrNull { it in shown } ?: shown.first()
+        }
     }
 
     companion object {
-        val ROWS = listOf(Line.FILMS, Line.SERIES, Line.YOUTUBE)
+        val ROWS = listOf(Line.HERMES, Line.FILMS, Line.SERIES, Line.YOUTUBE)
     }
 }
 
 /**
- * One row of picks: films (then "All films ›"), series or videos. The focused item is always the big card in
- * the left slot, so the visible slide is the row from the focus on; ◀ ▶ move it by one. Only the films row
- * shows a message card when it has nothing; the other rows are then empty and hidden.
+ * One row of picks: Hermes's picks, films (then "All films ›"), series or videos. The focused item is always the
+ * big card in the left slot, so the visible slide is the row from the focus on; ◀ ▶ move it by one. Only the
+ * films row shows a message card when it has nothing; the other rows are then empty and hidden.
  */
 class HomeRow(val kind: Line) {
     var items: List<RowItem> = cards(emptyList(), PickerView.Finding)

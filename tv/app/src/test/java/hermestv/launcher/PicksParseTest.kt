@@ -43,6 +43,25 @@ class PicksParseTest {
         assertNull(f.backdrop)
     }
 
+    // A From Hermes pick can be a TMDB title with no votes yet: it stays in the row and its line has no rating.
+    @Test
+    fun unratedHermesPickKeepsItsPlace() {
+        val p = Picks.parse(
+            """{"slot":"night","label":"From Hermes","row":"hermes","updated_at":"2026-10-20T20:01:00+08:00","refreshing":false,
+            "films":[{"title":"Quiet Harbour","year":2026,"runtime_min":98,"rating":null,"service":"netflix",
+            "url":"https://www.netflix.com/title/1","poster":null,"backdrop":null,"genres":["drama"],"why":"New and calm."},
+            {"title":"Signal Lost","year":2026,"runtime_min":null,"rating":null,"service":"hbomax",
+            "url":"https://play.max.com/show/1","poster":null,"backdrop":null,"genres":[],"why":"","kind":"series","seasons":1}]}""",
+        )
+        assertEquals(listOf("Quiet Harbour", "Signal Lost"), p.films.map { it.title })
+        val (film, show) = p.films
+        assertNull(film.rating)
+        assertEquals("2026 · 1 h 38", Meta.line(film))
+        assertEquals("2026 · 1 h 38 · Netflix", Meta.card(film))
+        assertEquals("2026 · 1 season · HBO Max", Meta.card(show))
+        assertEquals(p, Picks.parse(p.toJson()))
+    }
+
     @Test
     fun localCopyRoundTrips() {
         assertEquals(night, Picks.parse(night.toJson()))

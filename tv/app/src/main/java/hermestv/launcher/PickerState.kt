@@ -18,7 +18,7 @@ fun interface Timer { fun after(ms: Long, task: Runnable): Cancel }
  * A new list replaces the shown one only when its updated_at or its films differ (the bridge drops hidden and
  * opened films at once, with the same updated_at). A list for another slot is never shown or saved: at a slot
  * change the bridge's clock can be a little behind the TV's, so it is asked again. After stop(), late replies
- * are dropped.
+ * are dropped. An empty list keeps the shown one, unless [clearOnEmpty] (From Hermes: an empty list means no picks).
  */
 class PickerState(
     private val slot: String,
@@ -27,6 +27,7 @@ class PickerState(
     private val save: (Picks) -> Unit,
     private val timer: Timer,
     private val io: Executor,
+    private val clearOnEmpty: Boolean = false,
     private val show: (PickerView) -> Unit,
 ) {
     private var current: Picks? = local?.takeIf { it.films.isNotEmpty() }
@@ -71,7 +72,7 @@ class PickerState(
     private fun answered(r: Picks) {
         if (stopped) return
         val ours = r.slot == slot
-        if (ours && r.films.isNotEmpty() && (r.updatedAt != current?.updatedAt || r.films != current?.films)) {
+        if (ours && (r.films.isNotEmpty() || clearOnEmpty) && (r.updatedAt != current?.updatedAt || r.films != current?.films)) {
             val fresh = r.copy(refreshing = false)
             current = fresh
             save(fresh)

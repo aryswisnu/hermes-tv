@@ -1,5 +1,6 @@
 package hermestv.launcher
 
+import android.content.Intent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -52,6 +53,15 @@ class ActionsTest {
             "https://play.max.com/movie/1",
             "https://max.com/movie/1",
         ).forEach { assertEquals(it, Launch(it, "com.wbd.stream"), url(it)) }
+    }
+
+    @Test
+    fun youtubeVideoStartsAFreshTask() {
+        // A running YouTube app only comes to the front on NEW_TASK and keeps its old video.
+        val video = url("https://www.youtube.com/watch?v=vid00000001")!!
+        assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK, Actions.flags(video))
+        assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, Actions.flags(url("https://www.netflix.com/title/1")!!))
+        assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, Actions.flags(Launch(null, Actions.YOUTUBE)))
     }
 
     @Test

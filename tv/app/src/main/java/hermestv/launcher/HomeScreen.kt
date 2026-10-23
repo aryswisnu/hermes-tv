@@ -32,8 +32,9 @@ class Tile(val label: String, val logo: Int?)
 
 /**
  * Hermes TV Home: the focused card blurred behind dark glass, the status pill at the top right with the schedule
- * banner under it, and the lines (films, series, YouTube, the app dock). The focused line is at the top with
- * its focused card big in the left slot; the next line peeks below. [dropped] runs when cards let go of images.
+ * banner under it, and the lines (From Hermes, films, series, YouTube, the app dock). The focused line is at the
+ * top with its focused card big in the left slot; the next line peeks below. [dropped] runs when cards let go of
+ * images.
  */
 class HomeScreen(private val context: Context, private val images: ImageLoader, private val dropped: () -> Unit) {
     private val backdrop: View = object : View(context) {
@@ -314,7 +315,7 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
 
     /** One line: its small label, then its cards or the dock. */
     private inner class Lane(line: Line) : FrameLayout(context) {
-        val cards: CardRow? = if (line == Line.DOCK) null else CardRow(wide = line != Line.FILMS)
+        val cards: CardRow? = if (line == Line.DOCK) null else CardRow(wide = line != Line.FILMS && line != Line.HERMES)
 
         init {
             addView(text(13f, 0xFFE6E7EA.toInt(), SEMIBOLD).apply { text = line.label },

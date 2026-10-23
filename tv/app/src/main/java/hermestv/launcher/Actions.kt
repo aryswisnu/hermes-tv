@@ -49,6 +49,11 @@ object Actions {
         return pkg?.let { Launch(url, it) }
     }
 
+    /** A running YouTube app brought to the front by NEW_TASK alone keeps its old video, so a video starts a fresh task. */
+    fun flags(launch: Launch): Int =
+        if (launch.pkg == YOUTUBE && launch.url != null) Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        else Intent.FLAG_ACTIVITY_NEW_TASK
+
     /** Opens [f]. Returns false when it is not allowed or no app takes it. */
     fun open(f: Film, context: Context): Boolean {
         val launch = forItem(f)
@@ -66,7 +71,7 @@ object Actions {
             return false
         }
         return try {
-            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            context.startActivity(intent.addFlags(flags(launch)))
             true
         } catch (e: ActivityNotFoundException) {
             Log.w(TAG, "no activity for $intent")

@@ -2,6 +2,7 @@ package hermestv.launcher
 
 import hermestv.launcher.Line.DOCK
 import hermestv.launcher.Line.FILMS
+import hermestv.launcher.Line.HERMES
 import hermestv.launcher.Line.SERIES
 import hermestv.launcher.Line.YOUTUBE
 import org.junit.Assert.assertEquals
@@ -21,6 +22,9 @@ class HomeRowsTest {
             "", kind = "video", channel = "Story Vault", durationMin = 20 + i, videoId = "abcdefghij$i",
         )
     }
+
+    // Hermes's picks: a film and a series, each with Hermes's one-line why.
+    private val hermes = listOf(films[0].copy(why = "A slow forest chill for tonight"), series[1].copy(why = "Short episodes, big twists"))
 
     private fun local(h: Int, m: Int) = ZonedDateTime.of(2026, 10, 20, h, m, 0, 0, ZoneId.of("Asia/Tokyo"))
     private fun showing(list: List<Film>) = PickerView.Showing(night.copy(films = list), refreshing = false)
@@ -145,5 +149,68 @@ class HomeRowsTest {
         assertEquals(index, r.row(YOUTUBE).focus)
         assertEquals(retitled[index + 1], focused(r, YOUTUBE))
         assertEquals(3, r.row(YOUTUBE).items.size)
+    }
+
+    @Test
+    fun hermesRowFirstWhenPresent() {
+        val r = lunch()
+        r.show(HERMES, showing(hermes))
+        assertEquals(listOf(HERMES, FILMS, SERIES, YOUTUBE, DOCK), r.lines)
+        // The row comes in at the top with its first pick as the big card; like series it has no "All films ›".
+        assertEquals(HERMES, r.focus)
+        assertEquals(0, r.index)
+        assertEquals(hermes.map { RowItem.Film(it) }, r.row(HERMES).items)
+        assertEquals(hermes[0], focused(r, HERMES))
+        assertFalse(r.up())
+        assertTrue(r.next())
+        assertEquals(hermes[1], focused(r, HERMES))
+        assertTrue(r.down())
+        assertEquals(FILMS, r.focus)
+        // Home goes back to the top line.
+        r.home()
+        assertEquals(HERMES, r.focus)
+        assertEquals(hermes[0], focused(r, HERMES))
+
+        // No YouTube row at night: From Hermes, Films, Series.
+        val night = HomeRows(local(20, 0)).apply {
+            show(FILMS, showing(films))
+            show(SERIES, showing(series))
+            show(HERMES, showing(hermes))
+        }
+        assertEquals(listOf(HERMES, FILMS, SERIES, DOCK), night.lines)
+        assertEquals(HERMES, night.focus)
+
+        // Once ▲ ▼ ◀ ▶ moved after Home, a late Hermes row does not take the focus.
+        val late = lunch()
+        late.down()
+        late.show(HERMES, showing(hermes))
+        assertEquals(SERIES, late.focus)
+        assertEquals(2, late.index)
+    }
+
+    @Test
+    fun hermesRowHiddenWhenEmpty() {
+        val r = lunch()
+        r.show(HERMES, PickerView.Finding)
+        r.show(HERMES, PickerView.Offline("Hermes is offline"))
+        r.show(HERMES, showing(emptyList()))
+        r.show(HERMES, PickerView.NoFilms)
+        assertEquals(listOf(FILMS, SERIES, YOUTUBE, DOCK), r.lines)
+        assertEquals(FILMS, r.focus)
+        assertTrue(r.row(HERMES).items.isEmpty())
+
+        // "Not for us" on the last pick hides the row; the focus goes to the films row below it.
+        r.show(HERMES, showing(hermes))
+        assertEquals(HERMES, r.focus)
+        assertTrue(r.next())
+        hermes.forEach { r.remove(HERMES, it) }
+        assertEquals(listOf(FILMS, SERIES, YOUTUBE, DOCK), r.lines)
+        assertEquals(FILMS, r.focus)
+
+        // An empty answer from the bridge hides the row too.
+        r.show(HERMES, showing(hermes))
+        r.show(HERMES, showing(emptyList()))
+        assertEquals(listOf(FILMS, SERIES, YOUTUBE, DOCK), r.lines)
+        assertEquals(FILMS, r.focus)
     }
 }

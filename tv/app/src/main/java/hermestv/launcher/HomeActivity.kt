@@ -49,6 +49,8 @@ class HomeActivity : Activity() {
     private var schedule: ScheduleList? = null
     private var slotOverride: String? = null
     private var picksRun = 0
+    // From Hermes stays in memory only: a file could bring back picks that ended at 04:00, where the slot changes.
+    @Volatile private var hermes: Picks? = null
 
     private val slot: String get() = slotOverride ?: rows.slot
 
@@ -226,7 +228,7 @@ class HomeActivity : Activity() {
         render(animate = false)
     }
 
-    // HOME: the focus goes back to the first film card.
+    // HOME: the focus goes back to the first card of the top line.
     private fun home() {
         closeMenu()
         rows.home()
@@ -317,7 +319,7 @@ class HomeActivity : Activity() {
         val s = slot
         val run = ++picksRun
         io.execute {
-            val saved = HomeRows.ROWS.associateWith { files.local(s, it.key) }
+            val saved = HomeRows.ROWS.associateWith { if (it == Line.HERMES) hermes?.takeIf { h -> h.slot == s } else files.local(s, it.key) }
             main.post { if (run == picksRun) startStates(s, saved, timer) }
         }
     }
@@ -331,8 +333,9 @@ class HomeActivity : Activity() {
             } else {
                 { saved ?: throw IOException("no saved $s ${line.key}") }
             }
+            val save: (Picks) -> Unit = if (line == Line.HERMES) { p -> hermes = p } else files::save
             lateinit var state: PickerState
-            state = PickerState(s, saved, fetch, files::save, timer, io) { view ->
+            state = PickerState(s, saved, fetch, save, timer, io, clearOnEmpty = line == Line.HERMES) { view ->
                 main.post { if (states[line] === state) show(line, view) }
             }
             states[line] = state

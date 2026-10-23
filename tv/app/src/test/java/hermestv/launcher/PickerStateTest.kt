@@ -30,9 +30,9 @@ class PickerStateTest {
     private val saved = ArrayList<Picks>()
     private var calls = 0
 
-    private fun state(local: Picks?, io: Executor = Executor { it.run() }, vararg replies: () -> Picks) =
+    private fun state(local: Picks?, io: Executor = Executor { it.run() }, clearOnEmpty: Boolean = false, vararg replies: () -> Picks) =
         PickerState("night", local, fetch = { replies[minOf(calls++, replies.size - 1)]() }, save = { saved += it },
-            timer = timer, io = io, show = { views += it })
+            timer = timer, io = io, clearOnEmpty = clearOnEmpty, show = { views += it })
 
     @Test
     fun otherSlotNeverShownOrSaved() {
@@ -146,6 +146,22 @@ class PickerStateTest {
         state(night, replies = arrayOf({ filtered })).start()
         assertEquals(PickerView.Showing(filtered, refreshing = false), views.last())
         assertEquals(listOf(filtered), saved)
+    }
+
+    @Test
+    fun emptyAnswerClearsOnlyWhenAsked() {
+        val empty = night.copy(films = emptyList())
+        // Films: an empty answer is a refresh that found nothing; the saved list stays.
+        state(night, replies = arrayOf({ empty })).start()
+        assertEquals(PickerView.Showing(night, refreshing = false), views.last())
+        assertTrue(saved.isEmpty())
+
+        // From Hermes: an empty answer means Hermes asks for nothing now; the list goes.
+        views.clear()
+        calls = 0
+        state(night, clearOnEmpty = true, replies = arrayOf({ empty })).start()
+        assertEquals(PickerView.Showing(empty, refreshing = false), views.last())
+        assertEquals(listOf(empty), saved)
     }
 
     @Test

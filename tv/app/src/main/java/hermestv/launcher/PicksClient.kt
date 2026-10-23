@@ -35,7 +35,7 @@ internal object TailnetRoute {
 }
 
 class PicksClient(private val key: String = BuildConfig.TV_KEY) {
-    /** One row of the current slot: films, series or youtube. */
+    /** One row of the current slot: films, series, youtube or hermes. */
     fun picks(row: String = "films"): Picks {
         val text = request("GET", "/v1/picks?row=$row", null, TIMEOUT_MS)
         return try {
