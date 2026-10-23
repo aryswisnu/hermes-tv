@@ -34,6 +34,7 @@ class PickerState(
     private var polls = 0
     private var poll: Cancel? = null
     @Volatile private var stopped = false
+    @Volatile private var asking = false
 
     fun start() {
         show(current?.let { PickerView.Showing(it, refreshing = true) } ?: PickerView.Finding)
@@ -47,6 +48,16 @@ class PickerState(
         poll = null
     }
 
+    /** Asks the bridge again now, unless a request is on its way; a waiting poll is asked at once. */
+    @Synchronized
+    fun refresh() {
+        if (stopped || asking) return
+        poll?.cancel()
+        poll = null
+        polls = 0
+        request()
+    }
+
     /** Takes [film] out of the list ("Not for us") and saves the rest, so a later show or restart keeps it out. */
     @Synchronized
     fun drop(film: Film) {
@@ -57,19 +68,25 @@ class PickerState(
         io.execute { save(rest) }
     }
 
-    private fun request() = io.execute {
-        if (stopped) return@execute
+    private fun request() {
+        asking = true
+        io.execute { ask() }
+    }
+
+    private fun ask() {
+        if (stopped) return
         val reply = try {
             fetch()
         } catch (e: Exception) {
             failed(e)
-            return@execute
+            return
         }
         answered(reply)
     }
 
     @Synchronized
     private fun answered(r: Picks) {
+        asking = false
         if (stopped) return
         val ours = r.slot == slot
         if (ours && (r.films.isNotEmpty() || clearOnEmpty) && (r.updatedAt != current?.updatedAt || r.films != current?.films)) {
@@ -87,6 +104,7 @@ class PickerState(
 
     @Synchronized
     private fun failed(e: Exception) {
+        asking = false
         if (stopped) return
         val message = (e as? BridgeUnavailable)?.userMessage ?: OFFLINE
         show(current?.let { PickerView.Showing(it, refreshing = false) } ?: PickerView.Offline(message))

@@ -63,6 +63,16 @@ class PicksParseTest {
     }
 
     @Test
+    fun reasonOnlyOnHermesCards() {
+        val f = night.films[0].copy(why = " A slow forest chill for tonight ")
+        assertEquals("A slow forest chill for tonight", Meta.reason(f, Line.HERMES))
+        assertNull(Meta.reason(f.copy(why = "  "), Line.HERMES))
+        // The other rows keep their two lines.
+        assertNull(Meta.reason(f, Line.FILMS))
+        assertNull(Meta.reason(f, Line.SERIES))
+    }
+
+    @Test
     fun localCopyRoundTrips() {
         assertEquals(night, Picks.parse(night.toJson()))
     }

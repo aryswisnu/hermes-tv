@@ -315,7 +315,7 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
 
     /** One line: its small label, then its cards or the dock. */
     private inner class Lane(line: Line) : FrameLayout(context) {
-        val cards: CardRow? = if (line == Line.DOCK) null else CardRow(wide = line != Line.FILMS && line != Line.HERMES)
+        val cards: CardRow? = if (line == Line.DOCK) null else CardRow(line, wide = line != Line.FILMS && line != Line.HERMES)
 
         init {
             addView(text(13f, 0xFFE6E7EA.toInt(), SEMIBOLD).apply { text = line.label },
@@ -406,7 +406,7 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
      * [lift] is 1 on the top line and 0 when the row peeks below, where every card is small. [wide] rows
      * (series, videos) have 16:9 small cards; film posters keep the full height.
      */
-    private inner class CardRow(private val wide: Boolean) : ViewGroup(context) {
+    private inner class CardRow(private val line: Line, private val wide: Boolean) : ViewGroup(context) {
         private var items: List<Card> = emptyList()
         private var pos = 0f
         private var slide: ValueAnimator? = null
@@ -448,7 +448,7 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
             slide?.cancel()
             items.forEach { it.slot(InView.NONE) }
             removeAllViews()
-            items = row.map { if (it is RowItem.Film) FilmCard(it.film, wide) else GlassCard(it) }
+            items = row.map { if (it is RowItem.Film) FilmCard(it.film, wide, Meta.reason(it.film, line)) else GlassCard(it) }
             items.forEach { addView(it) }
             pos = focus.toFloat()
             place()
@@ -546,8 +546,8 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
         abstract fun resize(big: Boolean)
     }
 
-    /** A film (poster, small) or a series or video ([wide]: landscape image, small 16:9). */
-    private inner class FilmCard(private val film: Film, private val wide: Boolean) : Card() {
+    /** A film (poster, small) or a series or video ([wide]: landscape image, small 16:9). The big card shows [reason]. */
+    private inner class FilmCard(private val film: Film, private val wide: Boolean, private val reason: String?) : Card() {
         private val poster = image()
         private val wideImage = image().apply {
             alpha = 0f
@@ -570,10 +570,17 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
             ellipsize = TextUtils.TruncateAt.END
             text = Meta.card(film)
         }
+        private val why = text(13f, 0xD9FFFFFF.toInt()).apply {
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            text = reason
+            visibility = View.GONE
+        }
         private val caption = GlassLayout(context, glass, dp(12).toFloat(), CAPTION).apply {
             orientation = LinearLayout.VERTICAL
             addView(title)
             addView(meta, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(3) })
+            addView(why, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(3) })
         }
         private val posterUrls = if (wide) wide(film) else listOfNotNull(film.poster, film.backdrop).distinct()
 
@@ -671,6 +678,7 @@ class HomeScreen(private val context: Context, private val images: ImageLoader, 
 
         override fun resize(big: Boolean) {
             meta.visibility = if (big) View.VISIBLE else View.GONE
+            why.visibility = if (big && reason != null) View.VISIBLE else View.GONE
             title.maxLines = if (big || wide) 1 else 2
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (big) 19f else if (wide) 13f else 15f)
             // A small 16:9 card is short, so its caption is tighter.

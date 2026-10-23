@@ -189,6 +189,18 @@ class HomeRowsTest {
     }
 
     @Test
+    fun hermesRowKeepsFocusAfterSideStep() {
+        // ◀ ▶ in the films row after Home: a Hermes row that comes in later shows above and leaves the focus alone.
+        val r = lunch()
+        assertTrue(r.next())
+        r.show(HERMES, showing(hermes))
+        assertEquals(listOf(HERMES, FILMS, SERIES, YOUTUBE, DOCK), r.lines)
+        assertEquals(FILMS, r.focus)
+        assertEquals(1, r.index)
+        assertEquals(films[1], focused(r, FILMS))
+    }
+
+    @Test
     fun hermesRowHiddenWhenEmpty() {
         val r = lunch()
         r.show(HERMES, PickerView.Finding)

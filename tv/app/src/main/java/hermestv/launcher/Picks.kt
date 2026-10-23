@@ -150,6 +150,9 @@ object Meta {
         else -> listOf(line(f), service(f.service))
     }.joinToString(" · ")
 
+    /** The extra line on the big card of the From Hermes row: Hermes's reason, when it gave one. */
+    fun reason(f: Film, line: Line): String? = if (line == Line.HERMES) f.why.trim().ifEmpty { null } else null
+
     fun service(name: String): String = when (name) {
         "netflix" -> "Netflix"
         "hbomax" -> "HBO Max"

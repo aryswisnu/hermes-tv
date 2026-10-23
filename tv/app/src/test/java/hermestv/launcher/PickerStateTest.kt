@@ -165,6 +165,31 @@ class PickerStateTest {
     }
 
     @Test
+    fun refreshAsksOnceAtATime() {
+        // HOME asks From Hermes again, so a new pick shows after one press; a second press while the bridge works asks nothing more.
+        val held = ArrayList<Runnable>()
+        val s = state(night, io = Executor { held += it }, replies = arrayOf({ night }, { newer }))
+        s.start()
+        held.removeAt(0).run()
+        s.refresh()
+        s.refresh()
+        assertEquals(1, held.size)
+        held.removeAt(0).run()
+        assertEquals(2, calls)
+        assertEquals(PickerView.Showing(newer, refreshing = false), views.last())
+
+        // While a poll waits, HOME asks at once and the waiting poll goes.
+        calls = 0
+        val polling = state(null, replies = arrayOf({ pending }, { night }))
+        polling.start()
+        assertEquals(1, timer.tasks.size)
+        polling.refresh()
+        assertTrue(timer.tasks.isEmpty())
+        assertEquals(2, calls)
+        assertEquals(PickerView.Showing(night, refreshing = false), views.last())
+    }
+
+    @Test
     fun dropRemovesAndSaves() {
         val s = state(night, replies = arrayOf({ night }))
         s.start()

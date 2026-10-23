@@ -228,12 +228,13 @@ class HomeActivity : Activity() {
         render(animate = false)
     }
 
-    // HOME: the focus goes back to the first card of the top line.
+    // HOME: the focus goes back to the first card of the top line, and From Hermes is asked again at once.
     private fun home() {
         closeMenu()
         rows.home()
         dockFocus = null
         screen.focusDock(null)
+        states[Line.HERMES]?.refresh()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
