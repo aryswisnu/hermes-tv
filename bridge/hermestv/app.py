@@ -1,4 +1,3 @@
-import asyncio
 import hmac
 import logging
 from contextlib import asynccontextmanager
@@ -64,12 +63,10 @@ async def _lifespan(_app: FastAPI):
     settings = config.load()
     if not settings.tv_key:
         log.warning("TV_KEY is empty: every /v1/* request is rejected")
-    vault = asyncio.create_task(watchlog.vault_daily()) if settings.hermes_vault_tv_dir else None
+    if settings.hermes_vault_tv_dir:
+        watchlog.start_vault()
     yield
-    if vault:
-        vault.cancel()
-    if watchlog._pending:
-        watchlog._pending.cancel()
+    watchlog.shutdown()
 
 
 app = FastAPI(title="hermes-tv-bridge", lifespan=_lifespan)

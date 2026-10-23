@@ -26,6 +26,12 @@ def anyio_backend():
     return "asyncio"
 
 
+@pytest.fixture(autouse=True)
+def _frozen_clock(monkeypatch):
+    # No test reads the wall clock: watch.json and the notes are built at NOW.
+    monkeypatch.setattr(watchlog, "_utc_now", lambda: NOW.astimezone(timezone.utc))
+
+
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     path = tmp_path / "bridge.env"
@@ -133,6 +139,7 @@ async def test_schedule_debounces_to_one_write(docker, monkeypatch):
     path, body = docker.writes[0]
     assert path == "/opt/data/hermes-tv/watch.json"
     data = json.loads(body)
+    assert data["updated_at"] == "2026-10-22T21:00:00+08:00"
     assert [o["title"] for o in data["opened"]] == ["Unsolved case 1", "The Last of Us", "Talk to Me"]
     assert data["hidden"] == [{"title": "The Hunt", "year": 2020, "kind": "film"}]
 
@@ -216,6 +223,44 @@ def test_next_vault_is_2350_in_the_time_zone_setting(env):
     assert watchlog.next_vault(utc_16) == datetime(2026, 10, 22, 23, 50, tzinfo=timezone.utc)
 
 
+def test_next_vault_is_2350_local_across_daylight_saving(env):
+    env.write_text("TV_KEY=t\nTIME_ZONE=America/New_York\n")
+    ny = ZoneInfo("America/New_York")
+    # Clocks go back on 1 Nov 2026 and forward on 8 Mar 2026: the run stays at 23:50 local, 25 h or 23 h apart.
+    for day, hours in ((datetime(2026, 10, 31, 23, 50, tzinfo=ny), 25), (datetime(2026, 3, 7, 23, 50, tzinfo=ny), 23)):
+        at = watchlog.next_vault(day)
+        assert (at.hour, at.minute, at.date()) == (23, 50, (day + timedelta(days=1)).date())
+        assert at - day.astimezone(timezone.utc) == timedelta(hours=hours)
+
+
+async def test_vault_daily_runs_once_at_each_2350(env, monkeypatch):
+    env.write_text("TV_KEY=t\nTIME_ZONE=America/New_York\n")
+    ny = ZoneInfo("America/New_York")
+    clock = [datetime(2026, 10, 31, 12, 0, tzinfo=ny).astimezone(timezone.utc)]
+    sleeps, runs = [], []
+
+    async def sleep(seconds):
+        sleeps.append(seconds)
+        # The first wake comes 1 s early, as a timer may.
+        clock[0] += timedelta(seconds=seconds - (1 if len(sleeps) == 1 else 0))
+
+    async def once():
+        runs.append(clock[0].astimezone(ny).isoformat())
+        if len(runs) == 2:
+            raise asyncio.CancelledError
+        return True
+
+    monkeypatch.setattr(watchlog, "_utc_now", lambda: clock[0])
+    monkeypatch.setattr(watchlog, "_sleep", sleep)
+    monkeypatch.setattr(watchlog, "vault_once", once)
+    with pytest.raises(asyncio.CancelledError):
+        await watchlog.vault_daily()
+
+    # The early wake sleeps 1 s more and writes once; the next day is 25 h later, when the clocks go back.
+    assert runs == ["2026-10-31T23:50:00-04:00", "2026-11-01T23:50:00-05:00"]
+    assert sleeps == [11 * 3600 + 50 * 60, 1, 25 * 3600]
+
+
 def test_markdown_tables(env):
     history._write_history([{"time": (NOW - timedelta(minutes=n)).isoformat(), "kind": "film",
                              "title": f"Film {n}", "year": 2000, "video_id": None, "url": NETFLIX, "slot": "night"}
@@ -254,12 +299,14 @@ async def test_vault_once_writes_both_notes(docker, monkeypatch):
     assert await watchlog.vault_once() is True
     assert [p for p, _ in docker.writes] == [f"{VAULT}/Watch Log.md", f"{VAULT}/Taste.md"]
     assert b"| Talk to Me | 2022 | film | netflix |" in docker.writes[0][1]
+    assert b"Updated 2026-10-22 21:00 Australia/Perth." in docker.writes[1][1]
     docker.fail = True
     assert await watchlog.vault_once() is False
 
 
 def test_markdown_cells_cannot_link_or_inject(env):
     history.opened("film", "[[Private Note]] <script>x</script> `code` a|b c\\", 2022, None, NETFLIX, "night", now=NOW)
+    history.opened("film", "#Alive $x$ %%hidden%% ==mark== ^block", 2020, None, NETFLIX, "night", now=NOW)
 
     log, _ = watchlog.markdown(watchlog.build(NOW))
 
@@ -267,6 +314,9 @@ def test_markdown_cells_cannot_link_or_inject(env):
     # No note link, no HTML tag, no code span, and the pipe stays inside its cell.
     assert row == (r"| 2026-10-22 | \[\[Private Note\]\] \<script\>x\</script\> \`code\` a\|b c\\ | 2022 | film "
                    r"| netflix |")
+    row = next(line for line in log.splitlines() if "Alive" in line)
+    # No tag, math, comment, highlight or block id: "#Alive" is a real film title.
+    assert row == r"| 2026-10-22 | \#Alive \$x\$ \%\%hidden\%\% \=\=mark\=\= \^block | 2020 | film | netflix |"
 
 
 def test_failures_never_reach_the_open(env, monkeypatch, caplog):
@@ -295,6 +345,24 @@ async def test_build_failure_is_logged_by_type(docker, monkeypatch, caplog):
     assert docker.writes == []
     assert "watch.json failed: ValueError" in caplog.text
     assert "Talk to Me" not in caplog.text
+
+
+async def test_shutdown_cancels_a_write_in_docker(env, monkeypatch):
+    monkeypatch.setattr(watchlog, "DEBOUNCE_S", 0)
+    in_docker = asyncio.Event()
+
+    async def hang(cmd, timeout, limit, stdin=None):
+        in_docker.set()
+        await asyncio.sleep(3600)
+
+    monkeypatch.setattr(exchange, "_exec", hang)
+    async with app_mod._lifespan(app_mod.app):
+        history.opened("film", "Talk to Me", 2022, None, NETFLIX, "night", now=NOW)
+        task = watchlog._pending
+        await in_docker.wait()
+        assert watchlog._pending is None  # past the wait: only shutdown() can still reach it
+    await asyncio.wait([task], timeout=1)
+    assert task.cancelled()
 
 
 async def test_shutdown_cancels_a_waiting_write(env):

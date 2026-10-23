@@ -23,12 +23,22 @@ log = logging.getLogger(__name__)
 
 _pending: asyncio.Task | None = None  # the write that has not built its data yet
 _running: set[asyncio.Task] = set()  # the loop holds tasks only weakly
+_sleep = asyncio.sleep
 
 
 def _reset() -> None:
     global _pending
     _pending = None
     _running.clear()
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _track(task: asyncio.Task) -> None:
+    _running.add(task)
+    task.add_done_callback(_running.discard)
 
 
 def _service(url) -> str | None:
@@ -88,8 +98,7 @@ def schedule() -> None:
         _pending = asyncio.get_running_loop().create_task(_write_later(tv_dir))
     except RuntimeError:  # no event loop: a direct call, not a TV request
         return
-    _running.add(_pending)
-    _pending.add_done_callback(_running.discard)
+    _track(_pending)
 
 
 async def _write_later(tv_dir: str) -> None:
@@ -97,7 +106,7 @@ async def _write_later(tv_dir: str) -> None:
     await asyncio.sleep(DEBOUNCE_S)
     _pending = None  # a change from here on gets its own write
     try:
-        data = json.dumps(build(datetime.now(timezone.utc)), ensure_ascii=False)
+        data = json.dumps(build(_utc_now()), ensure_ascii=False)
     except Exception as e:  # Only the type: an exception text could hold a title.
         log.warning("watchlog: watch.json failed: %s", brief(e))
         return
@@ -106,11 +115,11 @@ async def _write_later(tv_dir: str) -> None:
 
 
 def _cell(value) -> str:
-    """One table cell: a title cannot end the cell, link a note, add HTML or open a code span."""
+    """One table cell: a title cannot end the cell, link a note, add HTML, a tag, math or other markup."""
     if value is None:
         return ""
     text = " ".join(str(value).split())
-    for ch in "\\|[]<>`":  # the backslash first, so an escape is never undone
+    for ch in "\\|[]<>`#$%=^":  # the backslash first, so an escape is never undone
         text = text.replace(ch, "\\" + ch)
     return text
 
@@ -141,7 +150,7 @@ async def vault_once() -> bool:
     vault_dir = config.load().hermes_vault_tv_dir
     if not vault_dir:
         return False
-    log_note, taste_note = markdown(build(datetime.now(timezone.utc)))
+    log_note, taste_note = markdown(build(_utc_now()))
     ok = await exchange.write(vault_dir, "Watch Log.md", log_note.encode())
     return await exchange.write(vault_dir, "Taste.md", taste_note.encode()) and ok
 
@@ -153,11 +162,25 @@ def next_vault(now: datetime) -> datetime:
 
 
 async def vault_daily() -> None:
+    at = next_vault(_utc_now())
     while True:
-        # In UTC: a difference of two times in one zone ignores a daylight saving change between them.
-        now = datetime.now(timezone.utc)
-        await asyncio.sleep((next_vault(now) - now).total_seconds())
+        # From the target, not from now: an early wake sleeps again and never writes twice.
+        await _sleep((at - _utc_now()).total_seconds())
+        if _utc_now() < at:
+            continue
         try:
             await vault_once()
         except Exception as e:  # Only the type: an exception text could hold a title.
             log.warning("watchlog: vault notes failed: %s", brief(e))
+        at = next_vault(at)
+
+
+def start_vault() -> None:
+    """Write the vault notes at 23:50 each day, until shutdown()."""
+    _track(asyncio.get_running_loop().create_task(vault_daily()))
+
+
+def shutdown() -> None:
+    """Cancel the daily vault task and every watch.json write, waiting or already in docker."""
+    for task in list(_running):
+        task.cancel()
