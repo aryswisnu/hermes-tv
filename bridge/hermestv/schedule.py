@@ -5,17 +5,15 @@ import logging
 import re
 import time
 import unicodedata
-from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
 from pydantic import BaseModel, ConfigDict
 
 from hermestv import config, hermes
+from hermestv.exchange import CONTAINER, _exec, _Failed
 from hermestv.slots import zone
 
 JOBS_FILE = "/opt/data/cron/jobs.json"
-# A docker container name; anything else could be read as a docker option.
-CONTAINER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 READ_TIMEOUT_S = 10.0
 MAX_BYTES = 2 * 1024 * 1024
 CACHE_S = 30 * 60
@@ -47,14 +45,6 @@ _now = time.monotonic
 _cache: tuple[float, date, list[ScheduleItem]] | None = None  # (made at, day, items)
 _running: tuple[date, asyncio.Task] | None = None  # (day it is for, refresh)
 _background: set[asyncio.Task] = set()
-
-
-class _Failed(Exception):
-    """A failure with a fixed reason, safe to log."""
-
-    def __init__(self, reason: str):
-        super().__init__(reason)
-        self.reason = reason
 
 
 def _local_now() -> datetime:
@@ -93,26 +83,6 @@ def _clip(value, limit: int) -> str:
         return ""
     text = "".join(ch for ch in " ".join(value.split()) if unicodedata.category(ch) not in ("Cc", "Cf"))
     return text[:limit].strip()
-
-
-async def _exec(cmd: Sequence[str], timeout: float, limit: int) -> bytes:
-    proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE,
-                                                stderr=asyncio.subprocess.DEVNULL)
-    data = b""
-    try:
-        async with asyncio.timeout(timeout):
-            while chunk := await proc.stdout.read(65536):
-                data += chunk
-                if len(data) > limit:
-                    raise _Failed("too much output")
-            await proc.wait()
-    finally:
-        if proc.returncode is None:
-            proc.kill()
-            await proc.wait()
-    if proc.returncode != 0:
-        raise _Failed("exit code is not 0")
-    return data
 
 
 async def _read_jobs(container: str, names: frozenset[str]) -> list[dict]:

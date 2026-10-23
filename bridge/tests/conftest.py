@@ -1,6 +1,6 @@
 import pytest
 
-from hermestv import hermes, history, picks, scenery, schedule
+from hermestv import hermes, history, picks, scenery, schedule, watchlog
 
 
 @pytest.fixture(autouse=True)
@@ -16,6 +16,8 @@ def _isolated_state(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMESTV_ENV_FILE", str(env))
     hermes._health = None
     schedule._reset()
+    watchlog._reset()
     yield
     hermes._health = None
     schedule._reset()
+    watchlog._reset()

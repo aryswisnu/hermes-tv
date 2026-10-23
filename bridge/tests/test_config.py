@@ -65,6 +65,19 @@ def test_schedule_settings_default_when_absent(tmp_path, monkeypatch):
     assert (s.schedule_jobs, s.hermes_container) == (frozenset(), "hermes")
 
 
+def test_load_reads_hermes_exchange_settings(tmp_path, monkeypatch):
+    env = tmp_path / "bridge.env"
+    env.write_text("TV_KEY=t\n")
+    monkeypatch.setenv("HERMESTV_ENV_FILE", str(env))
+    s = config.load()
+    # Empty folders mean the feature is off.
+    assert (s.hermes_tv_dir, s.hermes_vault_tv_dir) == ("", "")
+
+    env.write_text("TV_KEY=t\nHERMES_TV_DIR=/opt/data/hermes-tv\nHERMES_VAULT_TV_DIR=/opt/data/notes/TV\n")
+    s = config.load()
+    assert (s.hermes_tv_dir, s.hermes_vault_tv_dir) == ("/opt/data/hermes-tv", "/opt/data/notes/TV")
+
+
 def test_load_reads_time_zone_and_location(tmp_path, monkeypatch):
     env = tmp_path / "bridge.env"
     env.write_text("TV_KEY=t\nTIME_ZONE=Asia/Tokyo\nLATITUDE=35.6762\nLONGITUDE=139.6503\n")

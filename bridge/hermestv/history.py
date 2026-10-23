@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
+from hermestv import watchlog
 from hermestv.slots import zone
 from hermestv.titles import _norm
 
@@ -103,6 +104,7 @@ def opened(kind: Kind, title: str, year: int | None, video_id: str | None, url: 
     entry = {"time": now.isoformat(), "kind": kind, "title": title, "year": year, "video_id": video_id,
              "url": url, "slot": slot}
     _write_history((_history() + [entry])[-HISTORY_MAX:])
+    watchlog.schedule()
 
 
 def hide(kind: Kind, title: str, year: int | None, video_id: str | None, channel: str | None) -> None:
@@ -115,6 +117,7 @@ def hide(kind: Kind, title: str, year: int | None, video_id: str | None, channel
         data["items"].setdefault(_key(kind, title, year, video_id),
                                  {"kind": kind, "title": title, "year": year, "time": at})
     _write(STATE_DIR / "hidden.json", json.dumps(data, ensure_ascii=False, indent=1))
+    watchlog.schedule()
 
 
 def recent_titles(n: int = HINTS) -> list[str]:

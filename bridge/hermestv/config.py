@@ -24,6 +24,9 @@ class Settings:
     # Exact Hermes job names the TV may show; no other job ever appears, whatever jobs.json says.
     schedule_jobs: frozenset[str] = frozenset()
     hermes_container: str = "hermes"
+    # Folders under /opt/data/ in the Hermes container; empty turns that export off.
+    hermes_tv_dir: str = ""
+    hermes_vault_tv_dir: str = ""
     time_zone: str = "UTC"
     # Both set, or no weather.
     latitude: float | None = None
@@ -76,6 +79,8 @@ def load() -> Settings:
         youtube_exclude=_list(env.get("YOUTUBE_EXCLUDE", "")),
         schedule_jobs=frozenset(_list(env.get("SCHEDULE_JOBS", ""))),
         hermes_container=env.get("HERMES_CONTAINER") or "hermes",
+        hermes_tv_dir=env.get("HERMES_TV_DIR", ""),
+        hermes_vault_tv_dir=env.get("HERMES_VAULT_TV_DIR", ""),
         time_zone=env.get("TIME_ZONE") or "UTC",
         latitude=_coordinate("LATITUDE", env.get("LATITUDE"), 90),
         longitude=_coordinate("LONGITUDE", env.get("LONGITUDE"), 180),

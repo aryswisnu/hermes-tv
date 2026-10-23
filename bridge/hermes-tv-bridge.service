@@ -6,7 +6,7 @@ After=network-online.target
 WorkingDirectory=%h/hermes-tv/bridge
 ExecStart=%h/hermes-tv/bridge/.venv/bin/uvicorn hermestv.app:app --host 127.0.0.1 --port 8650
 Environment=PYTHONUNBUFFERED=1
-Restart=on-failure
+Restart=always
 RestartSec=5
 Nice=10
 MemoryMax=1500M

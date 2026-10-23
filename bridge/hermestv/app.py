@@ -1,3 +1,4 @@
+import asyncio
 import hmac
 import logging
 from contextlib import asynccontextmanager
@@ -7,7 +8,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
-from hermestv import config, hermes, history, picks, scenery, schedule, slots, weather
+from hermestv import config, hermes, history, picks, scenery, schedule, slots, watchlog, weather
 from hermestv.picks import PicksOut
 from hermestv.schedule import ScheduleOut
 from hermestv.titles import _norm
@@ -63,7 +64,12 @@ async def _lifespan(_app: FastAPI):
     settings = config.load()
     if not settings.tv_key:
         log.warning("TV_KEY is empty: every /v1/* request is rejected")
+    vault = asyncio.create_task(watchlog.vault_daily()) if settings.hermes_vault_tv_dir else None
     yield
+    if vault:
+        vault.cancel()
+    if watchlog._pending:
+        watchlog._pending.cancel()
 
 
 app = FastAPI(title="hermes-tv-bridge", lifespan=_lifespan)
