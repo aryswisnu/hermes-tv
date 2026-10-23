@@ -372,3 +372,16 @@ async def test_shutdown_cancels_a_waiting_write(env):
         assert task is not None
     await asyncio.sleep(0)
     assert task.cancelled()
+
+
+def test_extra_link_service_is_extra(env):
+    env.write_text(env.read_text() + "EXTRA_SOURCE_SCHEME=demo\n")
+    assert watchlog._service("demo://title/movie/amelie-2001") == "extra"
+    assert watchlog._service("https://www.netflix.com/title/1") == "netflix"
+    assert watchlog._service("other://title/movie/amelie-2001") is None
+
+
+def test_extra_off_link_service_none(env):
+    assert watchlog._service("demo://title/movie/amelie-2001") is None
+    env.write_text(env.read_text() + "EXTRA_SOURCE_SCHEME=https\n")  # unsafe: off
+    assert watchlog._service("https://title/movie/amelie-2001") is None

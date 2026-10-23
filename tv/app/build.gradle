@@ -43,6 +43,10 @@ android {
         versionName '2.0'
         buildConfigField 'String', 'BRIDGE_URL', literal(bridge['BRIDGE_URL'])
         buildConfigField 'String', 'TV_KEY', literal(bridge['TV_KEY'] ?: '')
+        // Optional: one more app the From Hermes row may open; any empty value turns it off.
+        ['EXTRA_SOURCE_PACKAGE', 'EXTRA_SOURCE_SCHEME', 'EXTRA_SOURCE_NAME'].each { key ->
+            buildConfigField 'String', key, literal(bridge[key] ?: '')
+        }
         (1..4).each { n ->
             ['URL', 'SUB_URL', 'NAME', 'FULL'].each { field ->
                 def key = "CAMERA_${n}_${field}".toString()

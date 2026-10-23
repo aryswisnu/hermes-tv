@@ -38,7 +38,7 @@ class PickFilmOut(_Strict):
     year: int | None
     runtime_min: int | None
     rating: float | None
-    service: Literal["netflix", "hbomax", "youtube"]
+    service: Literal["netflix", "hbomax", "youtube", "extra"]
     url: str
     poster: str | None
     backdrop: str | None

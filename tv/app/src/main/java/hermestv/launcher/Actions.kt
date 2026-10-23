@@ -15,7 +15,8 @@ data class Action(
 /** Opens [url] in the app [pkg]; a null url opens the app itself. */
 data class Launch(val url: String?, val pkg: String)
 
-// The only thing the TV may do: open a film or series URL in Netflix or HBO Max, or a video in YouTube.
+// The only thing the TV may do: open a film or series URL in Netflix, HBO Max or the extra source, or a video in
+// YouTube.
 object Actions {
     const val NETFLIX = "com.netflix.ninja"
     const val HBO_MAX = "com.wbd.stream"
@@ -34,14 +35,18 @@ object Actions {
     fun plan(action: Action): Launch? =
         if (action.type == "open_url") action.url?.let(::viewFor) else null
 
-    /** What OK on [f] opens: a video at its watch URL, a film or series its app (TMDB has no title link). */
+    /** What OK on [f] opens: a video or an extra-source title at its link, a film or series its app (TMDB has no
+     *  title link). */
     fun forItem(f: Film): Launch? {
         val launch = plan(Action("open_url", url = f.url)) ?: return null
-        return if (launch.pkg == YOUTUBE) launch else Launch(null, launch.pkg)
+        return if (launch.pkg == YOUTUBE || Extra.source.matches(f.url)) launch else Launch(null, launch.pkg)
     }
+
+    private fun isExtra(launch: Launch) = Extra.source.on && launch.pkg == Extra.source.pkg
 
     private fun viewFor(url: String): Launch? {
         if (YOUTUBE_URL.matches(url)) return Launch(url, YOUTUBE)
+        if (Extra.source.matches(url)) return Launch(url, Extra.source.pkg)
         val uri = try { URI(url) } catch (e: Exception) { return null }
         if (uri.scheme?.lowercase() !in setOf("http", "https")) return null
         val host = uri.host?.lowercase() ?: return null
@@ -49,9 +54,11 @@ object Actions {
         return pkg?.let { Launch(url, it) }
     }
 
-    /** A running YouTube app brought to the front by NEW_TASK alone keeps its old video, so a video starts a fresh task. */
+    /** A running YouTube or extra-source app brought to the front by NEW_TASK alone keeps its old screen, so a link
+     *  starts a fresh task. */
     fun flags(launch: Launch): Int =
-        if (launch.pkg == YOUTUBE && launch.url != null) Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        if (launch.url != null && (launch.pkg == YOUTUBE || isExtra(launch)))
+            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         else Intent.FLAG_ACTIVITY_NEW_TASK
 
     /** Opens [f]. Returns false when it is not allowed or no app takes it. */

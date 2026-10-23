@@ -143,3 +143,15 @@ def test_location_range_ends_are_valid(tmp_path, monkeypatch, caplog):
     monkeypatch.setenv("HERMESTV_ENV_FILE", str(env))
     assert (config.load().latitude, config.load().longitude) == (-90.0, 180.0)
     assert caplog.records == []
+
+
+def test_extra_source_settings_default_empty_and_read(tmp_path, monkeypatch):
+    env = tmp_path / "bridge.env"
+    env.write_text("TV_KEY=t\n")
+    monkeypatch.setenv("HERMESTV_ENV_FILE", str(env))
+    s = config.load()
+    assert (s.extra_source_search_url, s.extra_source_scheme) == ("", "")  # off
+
+    env.write_text("TV_KEY=t\nEXTRA_SOURCE_SEARCH_URL=https://search.example/api/search\nEXTRA_SOURCE_SCHEME=demo\n")
+    s = config.load()
+    assert (s.extra_source_search_url, s.extra_source_scheme) == ("https://search.example/api/search", "demo")

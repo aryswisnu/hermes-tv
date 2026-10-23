@@ -28,6 +28,9 @@ class Settings:
     hermes_tv_dir: str = ""
     hermes_vault_tv_dir: str = ""
     time_zone: str = "UTC"
+    # An optional extra source for the From Hermes row; both empty turns it off.
+    extra_source_search_url: str = ""
+    extra_source_scheme: str = ""
     # Both set, or no weather.
     latitude: float | None = None
     longitude: float | None = None
@@ -82,6 +85,8 @@ def load() -> Settings:
         hermes_tv_dir=env.get("HERMES_TV_DIR", ""),
         hermes_vault_tv_dir=env.get("HERMES_VAULT_TV_DIR", ""),
         time_zone=env.get("TIME_ZONE") or "UTC",
+        extra_source_search_url=env.get("EXTRA_SOURCE_SEARCH_URL", ""),
+        extra_source_scheme=env.get("EXTRA_SOURCE_SCHEME", ""),
         latitude=_coordinate("LATITUDE", env.get("LATITUDE"), 90),
         longitude=_coordinate("LONGITUDE", env.get("LONGITUDE"), 180),
     )

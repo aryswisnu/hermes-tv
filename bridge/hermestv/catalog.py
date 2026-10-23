@@ -54,9 +54,9 @@ class Film:
     year: int
     runtime_min: int | None
     rating: float | None
-    service: Literal["netflix", "hbomax"]
+    service: Literal["netflix", "hbomax", "extra"]
     url: str
-    poster: str
+    poster: str | None
     why: str = ""
     backdrop: str | None = None
     genres: list[str] = field(default_factory=list)

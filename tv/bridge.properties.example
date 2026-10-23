@@ -3,3 +3,7 @@
 BRIDGE_URL=https://<host>.<tailnet>.ts.net:8444
 # The TV key: the same value as TV_KEY in ~/.config/hermes-tv/bridge.env.
 TV_KEY=<same as bridge.env>
+# Optional: an extra source for the From Hermes row (README "Extra source"). Leave these out to turn it off.
+# EXTRA_SOURCE_PACKAGE=com.example.player
+# EXTRA_SOURCE_SCHEME=example
+# EXTRA_SOURCE_NAME=Example

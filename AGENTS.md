@@ -111,6 +111,6 @@ A test must fail when the logic it covers is removed. A test must not depend on 
 - Logs never carry an exception text or a key: use `errors.brief()` in the bridge.
 - Everything that touches Hermes stays off by default (`HERMES_URL`, `HERMES_TV_DIR` and `HERMES_VAULT_TV_DIR` empty). Without Hermes the app works and runs no `docker`.
 - `docker exec` calls use fixed argument lists. Paths come from settings and stay under `/opt/data/`.
-- The TV opens only Netflix, HBO Max and YouTube watch URLs (`Actions.kt`). Do not widen that list without a reason in the change.
+- The TV opens only Netflix, HBO Max and YouTube watch URLs, and the one optional extra-source link shape (`Actions.kt`, `ExtraSource.kt`). Do not widen that list without a reason in the change.
 - Match the style of the file you edit: names, comment density, short functions. English only.
 - Update README.md when a setting, a command or a behaviour that it describes changes.

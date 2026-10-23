@@ -9,7 +9,7 @@ import respx
 from fastapi.testclient import TestClient
 
 from hermestv import app as app_mod
-from hermestv import catalog, exchange, history, requests, watchlog
+from hermestv import catalog, exchange, extra, history, requests, watchlog
 from hermestv.picks import PicksOut
 
 pytestmark = pytest.mark.anyio
@@ -387,3 +387,86 @@ def test_route_survives_hostile_file(env, docker, monkeypatch, raw):
     assert r.status_code == 200 and r.json()["row"] == "hermes"
     assert [f["why"] for f in r.json()["films"]] == (["A slow, cold ghost story."] if b"Kept" in raw else [])
     assert "evil" not in r.text
+
+
+LANTERN_FILM = catalog.Film(title="The Lantern Keeper", year=2024, runtime_min=None, rating=7.4, service="netflix",
+                            url=catalog.HOMES["netflix"], poster="https://image.tmdb.org/t/p/w342/p.jpg")
+AMELIE = catalog.Film(title="Amélie", year=2001, runtime_min=None, rating=None, service="extra",
+                      url="demo://title/movie/amelie-2001", poster=None)
+
+
+def _finds(monkeypatch, on_catalog, on_extra):
+    """catalog.find and extra.find from two {title: Film | Exception} maps; records every call."""
+    calls = []
+
+    def fake(name, found):
+        async def find(title, year, kind):
+            calls.append((name, title))
+            got = found.get(title)
+            if isinstance(got, Exception):
+                raise got
+            return got
+        return find
+    monkeypatch.setattr(catalog, "find", fake("catalog", on_catalog))
+    monkeypatch.setattr(extra, "find", fake("extra", on_extra))
+    return calls
+
+
+async def test_netflix_wins_over_extra(docker, monkeypatch):
+    calls = _finds(monkeypatch, {"The Lantern Keeper": LANTERN_FILM}, {"The Lantern Keeper": AMELIE})
+    docker.file = _doc(_item())
+    assert [f.service for f in (await requests.picks(NOW)).films] == ["netflix"]
+    assert calls == [("catalog", "The Lantern Keeper")]
+
+
+async def test_not_on_catalog_found_on_extra(docker, monkeypatch):
+    calls = _finds(monkeypatch, {}, {"Amelie": AMELIE})
+    docker.file = _doc(_item(title="Amelie", why="Warm and odd."))
+    [film] = (await requests.picks(NOW)).films
+    assert (film.service, film.url, film.why, film.kind) == ("extra", "demo://title/movie/amelie-2001",
+                                                              "Warm and odd.", "film")
+    assert calls == [("catalog", "Amelie"), ("extra", "Amelie")]
+
+
+async def test_catalog_failure_does_not_fall_through(docker, monkeypatch):
+    # TMDB down must not turn a Netflix title into an extra-source card, nor be cached.
+    calls = _finds(monkeypatch, {"The Lantern Keeper": httpx.ConnectTimeout("slow")},
+                   {"The Lantern Keeper": AMELIE})
+    docker.file = _doc(_item())
+    assert (await requests.picks(NOW)).films == []
+    assert calls == [("catalog", "The Lantern Keeper")]
+    _finds(monkeypatch, {"The Lantern Keeper": LANTERN_FILM}, {})
+    assert [f.service for f in (await requests.picks(NOW)).films] == ["netflix"]
+
+
+async def test_extra_failure_drops_item_not_cached(docker, monkeypatch):
+    docker.file = _doc(_item(title="Amelie"), _item())
+    _finds(monkeypatch, {"The Lantern Keeper": LANTERN_FILM}, {"Amelie": httpx.ReadTimeout("slow")})
+    assert [f.title for f in (await requests.picks(NOW)).films] == ["The Lantern Keeper"]
+    calls = _finds(monkeypatch, {"The Lantern Keeper": LANTERN_FILM}, {"Amelie": AMELIE})
+    assert [f.title for f in (await requests.picks(NOW)).films] == ["Amélie", "The Lantern Keeper"]
+    assert ("extra", "Amelie") in calls
+
+
+@respx.mock
+async def test_extra_off_keeps_todays_behaviour(docker, monkeypatch):
+    # No extra-source settings: the real extra.find makes no request and does not fail, so the gap is cached.
+    calls = []
+    monkeypatch.setattr(catalog, "find", lambda *a: calls.append(a) or _none())
+    docker.file = _doc(_item(title="Amelie"))
+    assert (await requests.picks(NOW)).films == []
+    assert (await requests.picks(NOW)).films == []
+    assert len(calls) == 1 and not respx.calls
+
+
+async def _none():
+    return None
+
+
+async def test_no_tmdb_key_never_uses_extra(docker, env, monkeypatch):
+    # Without TMDB the bridge cannot tell a Netflix title from a missing one, so it must not guess the extra source.
+    env.write_text(env.read_text().replace("TMDB_API_KEY=v3key\n", ""))
+    calls = _finds(monkeypatch, {}, {"Amelie": AMELIE})
+    docker.file = _doc(_item(title="Amelie"))
+    assert (await requests.picks(NOW)).films == []
+    assert calls == [("catalog", "Amelie")]

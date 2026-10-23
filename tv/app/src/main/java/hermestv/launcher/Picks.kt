@@ -68,7 +68,8 @@ data class Picks(
             return Picks(
                 slot = o.getString("slot"),
                 label = o.getString("label"),
-                films = List(films.length()) { film(films.getJSONObject(it)) },
+                // A build without the extra source cannot open its links: such a card is left out.
+                films = List(films.length()) { film(films.getJSONObject(it)) }.filter { it.service != "extra" || Extra.source.on },
                 updatedAt = o.str("updated_at"),
                 refreshing = o.optBoolean("refreshing", false),
                 row = o.str("row") ?: "films",
@@ -157,6 +158,7 @@ object Meta {
         "netflix" -> "Netflix"
         "hbomax" -> "HBO Max"
         "youtube" -> "YouTube"
+        "extra" -> Extra.source.name
         else -> name
     }
 

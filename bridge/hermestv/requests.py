@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal
 
-from hermestv import catalog, config, exchange, history, slots
+from hermestv import catalog, config, exchange, extra, history, slots
 from hermestv.errors import brief
 from hermestv.picks import PickFilmOut, PicksOut
 from hermestv.slots import zone
@@ -131,14 +131,23 @@ def _log_rejected(raw: bytes, reason: str) -> None:
     log.log(logging.INFO if reason == OVER else logging.WARNING, "requests: requests.json not shown: %s", reason)
 
 
+async def _find(item: Item) -> catalog.Film | None:
+    """Netflix or HBO Max first; the extra source only when TMDB answered "not there" (a failure raises). Without a
+    TMDB key "not there" is unknown, so the extra source is not asked."""
+    film = await catalog.find(item.title, item.year, item.kind)
+    if film or not catalog._api_key():
+        return film
+    return await extra.find(item.title, item.year, item.kind)
+
+
 async def _resolve(raw: bytes, items: list[Item]) -> list[PickFilmOut]:
-    """Each item found on Netflix or HBO Max, in Hermes's order; a result without errors is kept 60 s for the
-    same file."""
+    """Each item found on Netflix, HBO Max or the extra source, in Hermes's order; a result without errors is kept
+    60 s for the same file."""
     global _cache
     digest = hashlib.sha256(raw).hexdigest()
     if _cache and _cache[0] == digest and _now() - _cache[1] < CACHE_S:
         return _cache[2]
-    found = await asyncio.gather(*(catalog.find(i.title, i.year, i.kind) for i in items), return_exceptions=True)
+    found = await asyncio.gather(*map(_find, items), return_exceptions=True)
     films: list[PickFilmOut] = []
     seen = set()
     failed = False

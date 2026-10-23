@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
-from hermestv import config, exchange, history
+from hermestv import config, exchange, extra, history
 from hermestv.errors import brief
 from hermestv.slots import zone
 
@@ -43,9 +43,12 @@ def _track(task: asyncio.Task) -> None:
 
 def _service(url) -> str | None:
     try:
-        host = urlsplit(url).hostname or ""
+        parts = urlsplit(url)
+        host = parts.hostname or ""
     except (TypeError, ValueError, AttributeError):
         return None
+    if (link := extra.scheme()) and parts.scheme == link:
+        return "extra"
     return next((name for domain, name in SERVICES.items() if host == domain or host.endswith("." + domain)), None)
 
 

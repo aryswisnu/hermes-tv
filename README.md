@@ -318,7 +318,7 @@ To update later: `git pull`, build again, run `tools/tv-install.sh` again, and r
 ## Ask Hermes in chat (optional)
 
 Ask your Hermes Agent for films in a chat app, for example Telegram: "Any folk-horror films set in a remote village? Show them on the TV tonight."
-Hermes reads what the TV opened, skips what you watched lately, and recommends titles on Netflix or HBO Max.
+Hermes reads what the TV opened, skips what you watched lately, and recommends titles on Netflix or HBO Max (or on an [extra source](#extra-source-optional), if you set one).
 When you ask, it puts its picks on the TV. A "From Hermes" row at the top of Home shows them until the next 04:00. The focused card shows Hermes's one-line reason under the meta line.
 
 <table>
@@ -382,6 +382,47 @@ The `hermes-tv-gate` plugin blocks tools only on API-server runs. Chat runs keep
 - The bridge looks up each title on TMDB, on Netflix or HBO Max in your `REGION`. A title that it cannot find is dropped. The TV opens only the service app, never a link from Hermes.
 - A request shows from its `created_at` until the next 04:00 in `TIME_ZONE`. A `created_at` without a time zone offset, or more than 5 minutes in the future, shows nothing.
 - A title that you hid with "Not for us" never shows.
+
+### Extra source (optional)
+
+A title that Hermes asks for is often not on Netflix or HBO Max. You can give the bridge one extra source: another TV app that has a search API and opens a title from a link. The bridge tries Netflix, then HBO Max, then the extra source. OK on an extra-source card opens that app on the title's page.
+
+The search API must answer `GET <url>?q=<title>` with this JSON (more fields are ignored):
+
+```json
+{"results": [{"title": "Arrival", "originalTitle": "Arrival", "contentType": "movie", "releaseDate": "2016-11-11",
+  "slug": "arrival-2016", "posterPath": "/abc123.jpg", "backdropPath": "/def456.jpg", "genres": ["Drama", "Sci-Fi"]}]}
+```
+
+- `contentType` is `movie` or `tv_series`. `posterPath` and `backdropPath` are TMDB image paths.
+- The app must open the link `<scheme>://title/movie/<slug>` or `<scheme>://title/series/<slug>` on the title's page.
+
+Set it up:
+
+1. In `~/.config/hermes-tv/bridge.env`, set the search URL and the link scheme:
+
+   ```sh
+   EXTRA_SOURCE_SEARCH_URL=https://search.example/api/search
+   EXTRA_SOURCE_SCHEME=example
+   ```
+
+2. In `tv/bridge.properties`, set the app's package, the same scheme and the name that the cards show. Build and install the APK again.
+
+   ```sh
+   EXTRA_SOURCE_PACKAGE=com.example.player
+   EXTRA_SOURCE_SCHEME=example
+   EXTRA_SOURCE_NAME=Example
+   ```
+
+3. Install the new skill in the Hermes container (the command in [Set it up](#set-it-up)). It tells Hermes that the TV also looks on its extra source.
+
+Leave the values empty to turn it off. Safety rules:
+
+- The bridge matches a hit by title or original title (accents ignored), by kind, and by year (one year off is allowed). It drops a hit without a release year from 1880 to 2100, and a hit whose slug is not lower-case letters, digits and `-` that starts with a letter or a digit (at most 120 characters). A source title longer than 120 characters or with control characters is replaced by the title that Hermes asked for.
+- The bridge builds the image URLs from the TMDB image base and the paths. It drops any other path. It reads at most 512 KB of each answer, uncompressed, and stops a search after 5 seconds.
+- The scheme must be 2 to 20 lower-case letters or digits that start with a letter. `http`, `https`, `intent`, `file`, `content`, `javascript` and `market` turn the feature off.
+- The TV opens only the exact link shape above, and only in `EXTRA_SOURCE_PACKAGE`. A build without these values drops extra-source cards.
+- If TMDB fails, or `TMDB_API_KEY` is not set, the bridge does not try the extra source: a Netflix title never opens in the extra source because the bridge could not check Netflix.
 
 ## Cameras
 
