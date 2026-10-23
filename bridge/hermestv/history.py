@@ -143,6 +143,12 @@ class Blocked:
         return _key(kind, title, year) in self.keys or _key(kind, title) in self.keys
 
 
+def hidden() -> Blocked:
+    """Only what was hidden, items and channels; not what was opened."""
+    data = _hidden()
+    return Blocked(frozenset(data["items"]), frozenset(data["channels"]))
+
+
 def blocked(now: datetime | None = None) -> Blocked:
     """What no row may show: hidden items and channels, and items opened in the last 90 days."""
     hidden = _hidden()

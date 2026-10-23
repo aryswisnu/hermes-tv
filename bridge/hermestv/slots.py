@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from hermestv import config
 
 SlotName = Literal["morning", "lunch", "afternoon", "dinner", "night", "late"]
-Row = Literal["films", "series", "youtube"]
+Row = Literal["films", "series", "youtube", "hermes"]
 
 log = logging.getLogger(__name__)
 

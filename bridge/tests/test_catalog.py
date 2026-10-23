@@ -329,3 +329,112 @@ async def test_details_failure_keeps_none(tmdb, caplog):
     # A failure is not cached: the next refresh asks again.
     broken.mock(return_value=httpx.Response(200, json=_load("movie_detail")))
     assert [f.runtime_min for f in await catalog.details(films, "films")] == [112, 95]
+
+
+SEARCH_MOVIE = f"{catalog.API}/search/movie"
+SEARCH_TV = f"{catalog.API}/search/tv"
+
+
+def _hit(tmdb_id: int, title: str, year: int, kind: str = "movie", **extra) -> dict:
+    named = ({"title": title, "release_date": f"{year}-05-01"} if kind == "movie"
+             else {"name": title, "first_air_date": f"{year}-05-01"})
+    return {"id": tmdb_id, **named, "poster_path": f"/poster{tmdb_id}.jpg", "backdrop_path": None,
+            "genre_ids": [878], "vote_average": 7.1, "vote_count": 300, **extra}
+
+
+def _search(*hits: dict) -> httpx.Response:
+    return httpx.Response(200, json={"page": 1, "results": list(hits), "total_pages": 1})
+
+
+def _providers(by_id: dict[int, dict]) -> respx.Route:
+    """Answers each watch/providers call from by_id (region -> offers), and each details call with a runtime."""
+    respx.get(path__regex=r"^/3/(movie|tv)/\d+$").mock(
+        return_value=httpx.Response(200, json={"runtime": 101, "number_of_seasons": 2}))
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        tmdb_id = int(request.url.path.split("/")[-3])
+        return httpx.Response(200, json={"id": tmdb_id, "results": by_id.get(tmdb_id, {})})
+    return respx.get(path__regex=r"^/3/(movie|tv)/\d+/watch/providers$").mock(side_effect=answer)
+
+
+def _on(*provider_ids: int, region: str = "US") -> dict:
+    return {region: {"link": "https://www.themoviedb.org/x", "flatrate": [{"provider_id": p} for p in provider_ids]}}
+
+
+@respx.mock
+async def test_find_matches_title_then_year(tmdb):
+    search = respx.get(SEARCH_MOVIE).mock(return_value=_search(
+        _hit(1, "Dune Sea: Part Two", 2021), _hit(2, "Dune Sea", 2021), _hit(3, "Dune Sea", 1984),
+        _hit(4, "Dune Sea", 2020)))
+    _providers({i: _on(1899) for i in (1, 2, 3, 4)})
+
+    film = await catalog.find("Dune Sea", 1984, "film")
+    assert (film.title, film.year, film.service, film.url, film.runtime_min) == (
+        "Dune Sea", 1984, "hbomax", catalog.HOMES["hbomax"], 101)
+    assert (await catalog.find("dune sea!", 2022, "film")).year == 2021  # a year off by one still matches
+    assert (await catalog.find("DUNE SEA", None, "film")).year == 2021  # no year: the most popular
+    assert (await catalog.find("Dune Sea", 2020, "film")).year == 2020  # the same year before a more popular one
+    assert await catalog.find("Dune Sea", 2000, "film") is None
+    assert await catalog.find("Dune", None, "film") is None
+    # No year in the search: TMDB would drop a year one off.
+    assert dict(search.calls.last.request.url.params) == {"query": "Dune", "api_key": "v3key"}
+
+    shows = respx.get(SEARCH_TV).mock(return_value=_search(_hit(1, "Dune Sea", 2021, kind="tv")))
+    show = await catalog.find("Dune Sea", 2021, "series")
+    assert (show.title, show.year, show.seasons, show.runtime_min) == ("Dune Sea", 2021, 2, None)
+    assert shows.call_count == 1
+
+
+@respx.mock
+async def test_find_needs_flatrate_on_a_service_in_the_region(tmdb, tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch, "TV_KEY=t\nTMDB_API_KEY=v3key\nREGION=GB\n")
+    respx.get(SEARCH_MOVIE).mock(return_value=_search(
+        _hit(11, "Night Harbour", 2001), _hit(12, "Night Harbour", 2002), _hit(13, "Night Harbour", 2003)))
+    route = _providers({
+        11: {**_on(8, region="US"), "GB": {"flatrate": [{"provider_id": 337}], "rent": [{"provider_id": 8}]}},
+        12: _on(1899, 8, region="GB"),
+        13: _on(8, region="GB"),
+    })
+
+    film = await catalog.find("Night Harbour", None, "film")
+    # Netflix only in another region or only to rent does not count; on both services it counts as Netflix.
+    assert (film.tmdb_id, film.service, film.url) == (12, "netflix", catalog.HOMES["netflix"])
+    assert [c.request.url.path.split("/")[-3] for c in route.calls] == ["11", "12"]
+
+    route.reset()
+    respx.get(SEARCH_MOVIE).mock(return_value=_search(*(_hit(20 + n, "Gone", 2000 + n) for n in range(6))))
+    assert await catalog.find("Gone", None, "film") is None
+    assert route.call_count == catalog.FIND_FIRST  # a few providers calls, not one per result
+
+
+@respx.mock
+async def test_find_keeps_title_without_rating_and_survives_bad_answers(tmdb, caplog):
+    search = respx.get(SEARCH_MOVIE).mock(return_value=_search(_hit(1, "Quiet Field", 2025, vote_average=0,
+                                                                      vote_count=0)))
+    providers = _providers({1: _on(8)})
+    film = await catalog.find("Quiet Field", 2025, "film")
+    assert (film.title, film.rating, film.service) == ("Quiet Field", None, "netflix")
+    # The slot rows still need a rating.
+    assert catalog._film("films", _hit(1, "Quiet Field", 2025, vote_count=0), "netflix") is None
+
+    for answer in ({"results": 5}, {"results": ["x"]}, {"results": [{**_hit(1, "Quiet Field", 2025), "title": 7}]}):
+        search.mock(return_value=httpx.Response(200, json=answer))
+        assert await catalog.find("Quiet Field", 2025, "film") is None, answer
+    search.mock(return_value=_search(_hit(1, "Quiet Field", 2025)))
+    for answer in ({"results": []}, {"results": {"US": []}}, {"results": {"US": {"flatrate": [5]}}}, [1]):
+        providers.mock(return_value=httpx.Response(200, json=answer))
+        assert await catalog.find("Quiet Field", 2025, "film") is None, answer
+
+    caplog.clear()
+    search.mock(return_value=httpx.Response(401))
+    assert await catalog.find("Quiet Field", 2025, "film") is None
+    # httpx puts the request URL, api_key included, in its error text.
+    assert "401" in caplog.text and "v3key" not in caplog.text
+
+
+@respx.mock
+async def test_find_without_key_asks_nothing(tmdb, tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch, "TV_KEY=t\n")
+    search = respx.get(SEARCH_MOVIE).mock(return_value=_search(_hit(1, "Quiet Field", 2025)))
+    assert await catalog.find("Quiet Field", 2025, "film") is None
+    assert search.call_count == 0

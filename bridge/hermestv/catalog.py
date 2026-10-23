@@ -11,6 +11,7 @@ import httpx
 from hermestv import config
 from hermestv.errors import brief
 from hermestv.slots import Row, Rule, Slot
+from hermestv.titles import _norm
 
 if TYPE_CHECKING:
     from hermestv.picks import PickFilmOut
@@ -23,6 +24,7 @@ MAX_CANDIDATES = 60
 MIN_VOTES = 50
 AVAILABLE_TTL_S = 6 * 3600
 DETAILS_TTL_S = 7 * 24 * 3600
+FIND_FIRST = 3  # search results whose providers are asked for
 # TMDB watch provider ids, in order of preference: a title on both counts as Netflix.
 PROVIDERS: dict[Literal["netflix", "hbomax"], int] = {"netflix": 8, "hbomax": 1899}
 # TMDB has no deep link to a title, so OK opens the service app.
@@ -51,7 +53,7 @@ class Film:
     title: str
     year: int
     runtime_min: int | None
-    rating: float
+    rating: float | None
     service: Literal["netflix", "hbomax"]
     url: str
     poster: str
@@ -105,19 +107,22 @@ def _genre_id(row: Row, name: str) -> int | None:
     return _TV_IDS.get(name) or (MYSTERY if name in _MOVIE_IDS else None)
 
 
-def _film(row: Row, item: dict, service: Literal["netflix", "hbomax"]) -> Film | None:
+def _film(row: Row, item: dict, service: Literal["netflix", "hbomax"], need_rating: bool = True) -> Film | None:
+    """The TMDB item as a Film; need_rating False also takes a title with no votes yet."""
     title = item.get("title" if row == "films" else "name")
     date = item.get("release_date" if row == "films" else "first_air_date") or ""
     rating = item.get("vote_average")
+    if not isinstance(rating, int | float) or isinstance(rating, bool) or item.get("vote_count") == 0:
+        rating = None
     if not (title and item.get("poster_path") and date[:4].isdigit() and isinstance(item.get("id"), int)
-            and isinstance(rating, int | float)):
+            and (rating is not None or not need_rating)):
         return None
     names = MOVIE_GENRES if row == "films" else TV_GENRES
     return Film(
         title=title,
         year=int(date[:4]),
         runtime_min=None,
-        rating=float(rating),
+        rating=None if rating is None else float(rating),
         service=service,
         url=HOMES[service],
         poster=_image(item["poster_path"], "w500"),
@@ -218,3 +223,38 @@ async def details(films: list[Film], row: Row) -> list[Film]:
         values = await asyncio.gather(*(_detail(client, kind, f.tmdb_id) for f in films))
     name = "runtime_min" if row == "films" else "seasons"
     return [replace(f, **{name: v}) if v is not None else f for f, v in zip(films, values)]
+
+
+async def _service(client: httpx.AsyncClient, kind: str, tmdb_id: int,
+                   region: str) -> Literal["netflix", "hbomax"] | None:
+    data = await _get(client, f"/{kind}/{tmdb_id}/watch/providers")
+    offers = (data.get("results") or {}).get(region) or {}
+    ids = {p.get("provider_id") for p in offers.get("flatrate") or []}
+    return next((service for service, provider in PROVIDERS.items() if provider in ids), None)
+
+
+async def find(title: str, year: int | None, kind: Literal["film", "series"]) -> Film | None:
+    """The title on Netflix or HBO Max in the region now: the same normalised title, then the year (one off is
+    allowed, as release years differ between sources); None when it is not there or TMDB fails."""
+    key = _api_key()
+    if not key:
+        return None
+    row: Row = "films" if kind == "film" else "series"
+    settings = config.load()
+    try:
+        async with _client(key) as client:
+            data = await _get(client, f"/search/{KINDS[row]}", {"query": title})
+            films = [f for item in data.get("results") or []
+                     if (f := _film(row, item, "netflix", need_rating=False)) and _norm(f.title) == _norm(title)]
+            if year is not None:
+                films = sorted((f for f in films if abs(f.year - year) <= 1), key=lambda f: f.year != year)
+            for f in films[:FIND_FIRST]:
+                if service := await _service(client, KINDS[row], f.tmdb_id, settings.region):
+                    film = replace(f, service=service, url=HOMES[service])
+                    break
+            else:
+                return None
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as e:
+        log.warning("find %s: tmdb failed: %s", kind, brief(e))
+        return None
+    return (await details([film], row))[0]

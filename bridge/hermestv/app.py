@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
-from hermestv import config, hermes, history, picks, scenery, schedule, slots, watchlog, weather
+from hermestv import config, hermes, history, picks, requests, scenery, schedule, slots, watchlog, weather
 from hermestv.picks import PicksOut
 from hermestv.schedule import ScheduleOut
 from hermestv.titles import _norm
@@ -94,7 +94,9 @@ async def v1_health() -> dict:
 
 
 @app.get("/v1/picks", dependencies=[Depends(_auth)], response_model=PicksOut)
-async def get_picks(row: Literal["films", "series", "youtube"] = "films") -> PicksOut:
+async def get_picks(row: Literal["films", "series", "youtube", "hermes"] = "films") -> PicksOut:
+    if row == "hermes":
+        return await requests.picks()
     return picks.get(slots.current(), row)
 
 
