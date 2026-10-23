@@ -1,7 +1,5 @@
 <p align="center">
-  <img src="docs/hero.png" alt="Hermes TV home screen at night: a big focused film card, a row of film posters, a row of series and a status pill with the time, the weather and the Hermes mark" width="900">
-  <br>
-  <sub>The home screen at night. All titles, art and names in these images are made up for the README.</sub>
+  <img src="docs/hero.jpg" alt="Hermes TV poster in the style of an old engraving: the god Hermes with his staff points at an ornate television cabinet that shows a night scene, with planets, stars and Latin captions around them" width="900">
 </p>
 
 <p align="center">
