@@ -222,6 +222,23 @@ async def test_unresolved_title_dropped_rest_kept(docker):
                             ("/3/search/tv", "Dune Sea")]
 
 
+@respx.mock
+async def test_tmdb_error_is_not_cached(docker, monkeypatch, caplog):
+    movies = {"The Lantern Keeper": httpx.Response(500)}
+    search = _tmdb(movies)
+    monkeypatch.setattr(requests, "_now", lambda: 1000.0)  # well within the 60 s of a kept result
+    docker.file = _doc(_item())
+    assert (await requests.picks(NOW)).films == []
+    # httpx puts the request URL, api_key included, in its error text.
+    assert "find failed: http 500" in caplog.text and "v3key" not in caplog.text
+    movies["The Lantern Keeper"] = LANTERN
+    # A TMDB blip does not blank the row for a minute: the next call asks again.
+    assert [f.title for f in (await requests.picks(NOW)).films] == ["The Lantern Keeper"]
+    assert search.call_count == 2
+    await requests.picks(NOW)
+    assert search.call_count == 2  # a clean answer is kept
+
+
 async def test_one_failing_find_drops_only_that_item(docker, monkeypatch):
     async def find(title, year, kind):
         if title == "Boom":

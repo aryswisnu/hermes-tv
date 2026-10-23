@@ -235,26 +235,23 @@ async def _service(client: httpx.AsyncClient, kind: str, tmdb_id: int,
 
 async def find(title: str, year: int | None, kind: Literal["film", "series"]) -> Film | None:
     """The title on Netflix or HBO Max in the region now: the same normalised title, then the year (one off is
-    allowed, as release years differ between sources); None when it is not there or TMDB fails."""
+    allowed, as release years differ between sources); None when it is not there. A TMDB failure raises, so the
+    caller can tell it from "not there" and ask again."""
     key = _api_key()
     if not key:
         return None
     row: Row = "films" if kind == "film" else "series"
     settings = config.load()
-    try:
-        async with _client(key) as client:
-            data = await _get(client, f"/search/{KINDS[row]}", {"query": title})
-            films = [f for item in data.get("results") or []
-                     if (f := _film(row, item, "netflix", need_rating=False)) and _norm(f.title) == _norm(title)]
-            if year is not None:
-                films = sorted((f for f in films if abs(f.year - year) <= 1), key=lambda f: f.year != year)
-            for f in films[:FIND_FIRST]:
-                if service := await _service(client, KINDS[row], f.tmdb_id, settings.region):
-                    film = replace(f, service=service, url=HOMES[service])
-                    break
-            else:
-                return None
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as e:
-        log.warning("find %s: tmdb failed: %s", kind, brief(e))
-        return None
+    async with _client(key) as client:
+        data = await _get(client, f"/search/{KINDS[row]}", {"query": title})
+        films = [f for item in data.get("results") or []
+                 if (f := _film(row, item, "netflix", need_rating=False)) and _norm(f.title) == _norm(title)]
+        if year is not None:
+            films = sorted((f for f in films if abs(f.year - year) <= 1), key=lambda f: f.year != year)
+        for f in films[:FIND_FIRST]:
+            if service := await _service(client, KINDS[row], f.tmdb_id, settings.region):
+                film = replace(f, service=service, url=HOMES[service])
+                break
+        else:
+            return None
     return (await details([film], row))[0]

@@ -408,7 +408,7 @@ async def test_find_needs_flatrate_on_a_service_in_the_region(tmdb, tmp_path, mo
 
 
 @respx.mock
-async def test_find_keeps_title_without_rating_and_survives_bad_answers(tmdb, caplog):
+async def test_find_keeps_title_without_rating_and_raises_on_bad_answers(tmdb):
     search = respx.get(SEARCH_MOVIE).mock(return_value=_search(_hit(1, "Quiet Field", 2025, vote_average=0,
                                                                       vote_count=0)))
     providers = _providers({1: _on(8)})
@@ -417,19 +417,23 @@ async def test_find_keeps_title_without_rating_and_survives_bad_answers(tmdb, ca
     # The slot rows still need a rating.
     assert catalog._film("films", _hit(1, "Quiet Field", 2025, vote_count=0), "netflix") is None
 
+    # A failure raises: the caller must not keep it as "not there".
     for answer in ({"results": 5}, {"results": ["x"]}, {"results": [{**_hit(1, "Quiet Field", 2025), "title": 7}]}):
         search.mock(return_value=httpx.Response(200, json=answer))
-        assert await catalog.find("Quiet Field", 2025, "film") is None, answer
+        with pytest.raises((TypeError, AttributeError)):
+            await catalog.find("Quiet Field", 2025, "film")
     search.mock(return_value=_search(_hit(1, "Quiet Field", 2025)))
-    for answer in ({"results": []}, {"results": {"US": []}}, {"results": {"US": {"flatrate": [5]}}}, [1]):
+    for answer in ({"results": {"US": {"flatrate": [5]}}}, [1]):
+        providers.mock(return_value=httpx.Response(200, json=answer))
+        with pytest.raises((AttributeError, ValueError)):
+            await catalog.find("Quiet Field", 2025, "film")
+    # No offer in the region is "not there", not a failure.
+    for answer in ({"results": []}, {"results": {"US": []}}, {"results": {"GB": {"flatrate": [{"provider_id": 8}]}}}):
         providers.mock(return_value=httpx.Response(200, json=answer))
         assert await catalog.find("Quiet Field", 2025, "film") is None, answer
-
-    caplog.clear()
-    search.mock(return_value=httpx.Response(401))
-    assert await catalog.find("Quiet Field", 2025, "film") is None
-    # httpx puts the request URL, api_key included, in its error text.
-    assert "401" in caplog.text and "v3key" not in caplog.text
+    search.mock(return_value=httpx.Response(500))
+    with pytest.raises(httpx.HTTPStatusError):
+        await catalog.find("Quiet Field", 2025, "film")
 
 
 @respx.mock
