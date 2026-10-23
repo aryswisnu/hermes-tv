@@ -4,9 +4,14 @@
   <sub>The home screen at night. All titles, art and names in these images are made up for the README.</sub>
 </p>
 
+<p align="center">
+  <img src="docs/hermes-logo.svg" alt="Hermes Agent logo" width="96">
+</p>
+
 <h1 align="center">Hermes TV</h1>
 
-<p align="center"><b>A calm, ad-free home screen for Android TV that picks what to watch by the time of day.</b></p>
+<p align="center"><b>Turn your Android TV into a really smart TV.</b><br>
+No ads. The right picks for the time of day. Your own AI agent. Your cameras on the big screen.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Android%20TV-12%2B-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android TV 12+">
@@ -21,12 +26,14 @@
 
 ## Why this exists
 
-The stock Google TV home on our TCL TV was full of ads and rows that we never asked for.
-When we turned the stock home off, the Netflix and YouTube buttons on the remote stopped working.
-We wanted a home screen that shows a few good picks for the time of day: light things at lunch, a film at night.
-We also wanted to see the house cameras on the TV without a cloud app.
+Our "smart" TV was not smart. The stock Google TV home was full of ads and rows that we never asked for.
+We wanted a TV that knows us:
 
-Hermes TV is the result. It replaces the TV's home screen. A small service on a home server (the "bridge") finds the picks.
+- **It knows the time of day.** Light comedies at lunch, a good horror or sci-fi film at night.
+- **It knows your taste.** Your own AI agent picks from what streams tonight and says why.
+- **It knows your house.** The cameras show on the TV in one press, with no cloud app.
+
+Hermes TV makes that real. It replaces the TV's home screen. A small service on a home server (the "bridge") finds the picks.
 A [Hermes Agent](https://github.com/NousResearch/hermes-agent) on your own machine can choose from them and say why. Hermes is optional.
 
 This README also lists every problem we hit on a TCL Smart TV Pro G09, with the fix.
@@ -40,7 +47,7 @@ This README also lists every problem we hit on a TCL Smart TV Pro G09, with the 
 | 14:00–16:59 Mon–Fri | Top rated for you | any genre, TMDB 7.5+ | Films, Series |
 | 14:00–16:59 Sat–Sun | Weekend family films | family, animation or comedy, no horror, TMDB 7.0+ | Films, Series |
 | 17:00–18:59 | Dinner together | as at lunch | Films, Series, YouTube |
-| 19:00–03:59 | Tonight Movie Time | horror or drama; films TMDB 7.0+, series TMDB 7.5+ | Films, Series |
+| 19:00–03:59 | Tonight Movie Time | horror or sci-fi; films TMDB 7.0+, series TMDB 7.5+ | Films, Series |
 | 04:00–05:59 | Top rated for you | any genre, TMDB 7.5+ | Films, Series |
 
 Documentaries never show in the Films and Series rows. The slots and the taste are plain code in `bridge/hermestv/slots.py`: edit them to change the rules.

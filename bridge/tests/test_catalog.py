@@ -59,7 +59,7 @@ def _page(results: list[dict], total_pages: int = 1) -> dict:
 
 
 def _film(**kw) -> catalog.Film:
-    return replace(catalog.Film("X", 2020, 100, 7.4, "netflix", "u", "p", genres=["drama"]), **kw)
+    return replace(catalog.Film("X", 2020, 100, 7.4, "netflix", "u", "p", genres=["scifi"]), **kw)
 
 
 @respx.mock
@@ -74,7 +74,7 @@ async def test_discover_query_params(tmdb, tmp_path, monkeypatch):
     assert [p.pop("with_watch_providers") for p in sent] == ["8", "1899"]
     assert sent[0] == sent[1] == {
         "api_key": "v3key", "watch_region": "US", "with_watch_monetization_types": "flatrate",
-        "vote_average.gte": "7.0", "vote_count.gte": "50", "without_genres": "99", "with_genres": "27|18",
+        "vote_average.gte": "7.0", "vote_count.gte": "50", "without_genres": "99", "with_genres": "27|878",
         "sort_by": "popularity.desc", "page": "1"}
     assert "authorization" not in movies.calls[0].request.headers
 
@@ -94,7 +94,7 @@ async def test_discover_query_params(tmdb, tmp_path, monkeypatch):
     await catalog.available(LUNCH, "series")
     night_tv, lunch_tv = (dict(shows.calls[i].request.url.params) for i in (0, 2))
     assert (night_tv["with_genres"], night_tv["vote_average.gte"], "with_original_language" in night_tv) == (
-        "9648|18", "7.5", False)
+        "9648|10765", "7.5", False)
     assert (lunch_tv["with_genres"], lunch_tv["with_original_language"]) == ("35|10751|9648", "ko")
 
 
@@ -113,11 +113,11 @@ async def test_film_fields(tmdb):
     # A documentary and a film under the night minimum are dropped; the order stays TMDB's.
     assert [f.title for f in films] == ["The Lantern Keeper", "Harbour of Small Hours", "Glass Orchard",
                                         "Midnight Ferry"]
-    assert films[2].genres == ["drama", "romance"]  # an unknown genre id is skipped
+    assert films[2].genres == ["scifi", "romance"]  # an unknown genre id is skipped
 
     shows = await catalog.available(NIGHT, "series")
 
-    assert [s.title for s in shows] == ["The Hollow Line"]
+    assert [s.title for s in shows] == ["The Hollow Line", "Northbound"]  # mystery, then sci-fi
     hollow = shows[0]
     assert (hollow.year, hollow.rating, hollow.genres, hollow.service, hollow.url, hollow.seasons,
             hollow.tmdb_id) == (2024, 8.2, ["mystery", "drama"], "hbomax", "https://www.max.com/", None, 800001)
@@ -283,7 +283,8 @@ def test_fits():
     assert catalog.fits(NIGHT.series, film) is False  # series need 7.5 at night
     assert catalog.fits(NIGHT.series, replace(film, rating=7.5, genres=["horror"])) is True
     assert catalog.fits(NIGHT.films, replace(film, genres=["thriller"])) is False
-    assert catalog.fits(NIGHT.films, replace(film, genres=["drama", "documentary"])) is False
+    assert catalog.fits(NIGHT.films, replace(film, genres=["drama"])) is False
+    assert catalog.fits(NIGHT.films, replace(film, genres=["scifi", "documentary"])) is False
     assert catalog.fits(LUNCH.films, replace(film, genres=["comedy", "horror"])) is False
     assert catalog.fits(LUNCH.films, replace(film, genres=["comedy", "thriller"])) is True
     # A series the query found as mystery (TV has no horror) fits the night; a morning rule asks no mystery.

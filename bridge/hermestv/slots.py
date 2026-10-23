@@ -69,8 +69,8 @@ SLOTS: dict[str, Slot] = {
     "afternoon": Slot("afternoon", "Top rated for you", _ANY_ASK, _ANY, _ANY),
     "dinner": Slot("dinner", "Dinner together", f"{_LIGHT_ASK} at dinner", _LIGHT_LOCAL, _LIGHT_LOCAL, _MEAL_ROWS),
     "night": Slot("night", "Tonight Movie Time",
-                  "a mix of horror and drama, roughly half each when the list allows it, for tonight",
-                  Rule(7.0, ("horror", "drama")), Rule(7.5, ("horror", "drama"))),
+                  "a mix of horror and sci-fi, roughly half each when the list allows it, for tonight",
+                  Rule(7.0, ("horror", "scifi")), Rule(7.5, ("horror", "scifi"))),
     "late": Slot("late", "Top rated for you", _ANY_ASK, _ANY, _ANY),
 }
 WEEKEND_AFTERNOON = Slot("afternoon", "Weekend family films",

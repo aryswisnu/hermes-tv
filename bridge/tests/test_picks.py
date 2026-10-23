@@ -173,8 +173,8 @@ async def test_refresh_single_flight(fake, client):
 
 @pytest.mark.parametrize("slot, kept", [
     (LUNCH, ["Comedy 6.5", "Comedy 7.9"]),
-    (NIGHT, ["Horror 7.0", "Horror 7.5", "Drama 7.5"]),
-    (AFTERNOON, ["Horror 7.5", "Drama 7.5"]),
+    (NIGHT, ["Horror 7.0", "Horror 7.5", "Sci-fi 7.5"]),
+    (AFTERNOON, ["Horror 7.5", "Sci-fi 7.5"]),
 ])
 async def test_refresh_filters_by_slot(fake, slot, kept):
     films = [
@@ -184,7 +184,7 @@ async def test_refresh_filters_by_slot(fake, slot, kept):
         _film("Horror 7.0", 7.0, ("horror", "thriller")),
         _film("Horror 6.9", 6.9, ("horror",)),
         _film("Horror 7.5", 7.5, ("horror",)) if slot is not LUNCH else _film("Horror 6.4", 6.4, ("horror",)),
-        _film("Drama 7.5", 7.5, ("drama",)),
+        _film("Sci-fi 7.5", 7.5, ("scifi",)),
     ]
     fake.hermes = [f.title for f in films]
     fake.catalog = {f.title: f for f in films}
@@ -244,13 +244,13 @@ async def test_refresh_keeps_three_old_when_new_are_few(fake, caplog, slot, genr
 
 async def test_refresh_drops_old_unfit_films(fake):
     _write_cache(NIGHT, [_film("Old Doc", 8.0, ("horror", "documentary")), _film("Old Low", 6.9),
-                         _film("Old Drama", 8.0, ("drama",)), "Old Kept"], timedelta(minutes=30))
+                         _film("Old Sci-fi", 8.0, ("scifi",)), "Old Kept"], timedelta(minutes=30))
     fake.hermes = ["New A"]
     fake.catalog = {"New A": _film("New A")}
 
     await picks.refresh(NIGHT)
 
-    assert [f.title for f in picks.get(NIGHT).films] == ["New A", "Old Drama", "Old Kept"]
+    assert [f.title for f in picks.get(NIGHT).films] == ["New A", "Old Sci-fi", "Old Kept"]
     await _settle()
 
 
@@ -280,7 +280,7 @@ async def test_refresh_asks_hermes_for_the_slot_excluding_the_last_list(fake, tm
     assert key == f"hermes-tv-picks-films-{datetime.now(slots.zone()):%Y%m%d}"
     assert "up to 10 films" in text and "Old One, Old Two" in text
     # The night row is a mix, not horror only.
-    assert "a mix of horror and drama, roughly half each" in text
+    assert "a mix of horror and sci-fi, roughly half each" in text
     assert "- Talk to Me (2022)" in text
     assert "Every title on it is on Netflix or HBO Max in CA now" in text
     assert "Do not run code" in text  # a tool call waits for an approval nobody gives
@@ -568,7 +568,7 @@ async def test_picks_row_series(fake, client):
     fake.hermes = ["Dark Show"]
     fake.catalog = {"Talk to Me": _film("Talk to Me")}
     fake.series = {t: _film(t, rating, genres, seasons=n) for t, rating, genres, n in (
-        ("Dark Show", 8.0, ("drama",), 3), ("Low Show", 7.4, ("horror",), 1), ("Funny Show", 8.5, ("comedy",), 2))}
+        ("Dark Show", 8.0, ("scifi",), 3), ("Low Show", 7.4, ("horror",), 1), ("Funny Show", 8.5, ("comedy",), 2))}
 
     r = await client.get("/v1/picks?row=series", headers=AUTH)
     films = picks.refresh(NIGHT, "films")
@@ -710,9 +710,9 @@ async def test_youtube_failure_keeps_last(fake, monkeypatch, caplog):
 
 
 async def test_kept_series_from_an_old_cache_reads_as_series(fake):
-    _write_cache(NIGHT, [_film("Old Show", 8.0, ("drama",), seasons=2)], timedelta(minutes=30), row="series")
+    _write_cache(NIGHT, [_film("Old Show", 8.0, ("scifi",), seasons=2)], timedelta(minutes=30), row="series")
     fake.hermes = ["New Show"]
-    fake.series = {"New Show": _film("New Show", 8.0, ("drama",), seasons=1)}
+    fake.series = {"New Show": _film("New Show", 8.0, ("scifi",), seasons=1)}
 
     await picks.refresh(NIGHT, "series")
 
