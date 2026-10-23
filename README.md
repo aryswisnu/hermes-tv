@@ -70,6 +70,12 @@ Documentaries never show in the Films and Series rows. The slots and the taste a
 
 ## How it fits together
 
+<p align="center">
+  <img src="docs/architecture.png" alt="Architecture: the Android TV talks to the bridge over HTTPS through Tailscale and plays the IP cameras directly over RTSP. The bridge on a VPS or home PC asks the Hermes Agent API for picks, reads TMDB, YouTube and Open-Meteo, and exchanges watch.json and requests.json with the Hermes container through docker exec. In Telegram you ask Hermes, its hermes-tv skill writes requests.json, and the TV shows a From Hermes row." width="900">
+  <br>
+  <sub>Edit the diagram: open <code>docs/architecture.excalidraw</code> at <a href="https://excalidraw.com">excalidraw.com</a>.</sub>
+</p>
+
 ```text
  Android TV (Hermes TV app)
    |                      \
