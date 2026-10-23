@@ -71,8 +71,8 @@ The TV drops every item that holds one of them.
 
 After you write the file, tell the user:
 
-- The picks appear in the "From Hermes" row the next time the TV opens Home.
-- They stay until 04:00 the next morning (TV local time).
+- The picks appear in the "From Hermes" row when they press HOME on the TV, a few seconds after you write the file.
+- They stay until the next 04:00 (TV local time).
 - Titles that the TV cannot find on Netflix or HBO Max are left out.
 
 ## 6. Clear the TV row
